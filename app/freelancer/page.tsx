@@ -1,9 +1,20 @@
 import type { Metadata } from "next";
 import FreelancerCalculator from "./components/FreelancerCalculator";
 
+const title = "프리랜서 실수령액 계산기";
+const description = "계약금액과 실수령액을 3.3% 원천징수 기준으로 계산해요.";
+
 export const metadata: Metadata = {
-  title: "프리랜서 실수령액 계산기",
-  description: "계약금액과 실수령액을 3.3% 원천징수 기준으로 계산해요.",
+  title,
+  description,
+  alternates: {
+    canonical: "/freelancer",
+  },
+  openGraph: {
+    title,
+    description,
+    url: "/freelancer",
+  },
 };
 
 export default function FreelancerPage() {
