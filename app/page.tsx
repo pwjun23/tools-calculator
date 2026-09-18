@@ -1,5 +1,5 @@
 import Link from "next/link";
-import ThemeToggle from "./salary/components/ThemeToggle";
+import ThemeToggle from "./components/ThemeToggle";
 
 const tools = [
   {
@@ -14,6 +14,13 @@ const tools = [
     icon: "🧾",
     title: "프리랜서 실수령액 계산기",
     description: "계약금액과 실수령액을 3.3% 원천징수 기준으로 계산해요.",
+  },
+  {
+    href: "/car",
+    icon: "🚗",
+    title: "자동차 유지비 계산기",
+    description:
+      "연료비·보험료·정비비·세금까지, 차를 굴리는 데 드는 월/연 비용을 계산해요.",
   },
 ] as const;
 

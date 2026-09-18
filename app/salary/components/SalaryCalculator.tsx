@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   RATES_2025,
   TAX_BRACKETS,
@@ -9,15 +9,14 @@ import {
   type SalaryPeriod,
 } from "@/lib/calculations/salary-calculator";
 import { formatKoreanAmount, formatWon } from "@/lib/format";
+import MoneyField from "@/app/components/MoneyField";
+import Stepper from "@/app/components/Stepper";
 
 const MAX_AMOUNT = 10_000_000_000;
 const MAX_DEPENDENTS = 10;
 
 const CARD =
   "rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 dark:border-slate-800 dark:bg-slate-900";
-const INPUT =
-  "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-right text-lg font-semibold tabular-nums outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 dark:border-slate-700 dark:bg-slate-950";
-
 const pct = (rate: number) => `${Number((rate * 100).toFixed(3))}%`;
 const num = (n: number) => n.toLocaleString("en-US");
 
@@ -409,108 +408,6 @@ export default function SalaryCalculator() {
 }
 
 /* ---------- 작은 부품들 ---------- */
-
-function MoneyField({
-  label,
-  value,
-  onChange,
-  hint,
-  compact,
-}: {
-  label: string;
-  value: number;
-  onChange: (n: number) => void;
-  hint?: string;
-  compact?: boolean;
-}) {
-  const id = useId();
-  return (
-    <div>
-      <label htmlFor={id} className="mb-1.5 block text-sm font-medium">
-        {label}
-      </label>
-      <div className="relative">
-        <input
-          id={id}
-          type="text"
-          inputMode="numeric"
-          autoComplete="off"
-          value={value > 0 ? num(value) : ""}
-          placeholder="0"
-          onChange={(e) => {
-            const digits = e.target.value.replace(/\D/g, "");
-            onChange(Math.min(Number(digits || 0), MAX_AMOUNT));
-          }}
-          className={`${INPUT} pr-10 ${compact ? "py-2.5 text-base" : ""}`}
-        />
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-500"
-        >
-          원
-        </span>
-      </div>
-      {hint && (
-        <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400">
-          {hint}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function Stepper({
-  label,
-  hint,
-  value,
-  min,
-  max,
-  onChange,
-}: {
-  label: string;
-  hint: string;
-  value: number;
-  min: number;
-  max: number;
-  onChange: (n: number) => void;
-}) {
-  const btn =
-    "flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 text-xl leading-none transition enabled:hover:bg-slate-100 disabled:opacity-30 dark:border-slate-700 dark:enabled:hover:bg-slate-800";
-  return (
-    <div>
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-sm font-medium">{label}</span>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            aria-label={`${label} 줄이기`}
-            disabled={value <= min}
-            onClick={() => onChange(value - 1)}
-            className={btn}
-          >
-            −
-          </button>
-          <span
-            aria-live="polite"
-            className="w-6 text-center text-lg font-semibold tabular-nums"
-          >
-            {value}
-          </span>
-          <button
-            type="button"
-            aria-label={`${label} 늘리기`}
-            disabled={value >= max}
-            onClick={() => onChange(value + 1)}
-            className={btn}
-          >
-            +
-          </button>
-        </div>
-      </div>
-      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{hint}</p>
-    </div>
-  );
-}
 
 function GroupRow({ title }: { title: string }) {
   return (
