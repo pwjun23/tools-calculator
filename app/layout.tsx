@@ -24,6 +24,9 @@ export const metadata: Metadata = {
     siteName: "도구 모음",
     locale: "ko_KR",
   },
+  verification: {
+    google: "SRRvEKbg362Et3tYIP3ClwBLzM-d3_nR8C8EatO_PH0",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
