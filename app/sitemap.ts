@@ -21,5 +21,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}/car`,
       lastModified,
     },
+    {
+      url: `${baseUrl}/jeonse`,
+      lastModified,
+    },
   ];
 }

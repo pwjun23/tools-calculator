@@ -22,6 +22,13 @@ const tools = [
     description:
       "연료비·보험료·정비비·세금까지, 차를 굴리는 데 드는 월/연 비용을 계산해요.",
   },
+  {
+    href: "/jeonse",
+    icon: "🏠",
+    title: "전세금 이자 계산기",
+    description:
+      "전세금에 묶인 이자와 월세를 비교해 어느 쪽이 더 저렴한지 계산해요.",
+  },
 ] as const;
 
 export default function Home() {
