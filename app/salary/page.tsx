@@ -2,10 +2,21 @@ import type { Metadata } from "next";
 import SalaryCalculator from "./components/SalaryCalculator";
 import ThemeToggle from "./components/ThemeToggle";
 
+const title = "연봉 계산기 - 실수령액 계산";
+const description =
+  "연봉 또는 월급을 입력하면 소득세, 국민연금, 건강보험, 고용보험을 뺀 실수령액을 한 화면에서 확인할 수 있습니다.";
+
 export const metadata: Metadata = {
-  title: "연봉 계산기 - 실수령액 계산",
-  description:
-    "연봉 또는 월급을 입력하면 소득세, 국민연금, 건강보험, 고용보험을 뺀 실수령액을 한 화면에서 확인할 수 있습니다.",
+  title,
+  description,
+  alternates: {
+    canonical: "/salary",
+  },
+  openGraph: {
+    title,
+    description,
+    url: "/salary",
+  },
 };
 
 export default function SalaryPage() {

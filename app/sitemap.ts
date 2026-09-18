@@ -13,5 +13,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}/freelancer`,
       lastModified,
     },
+    {
+      url: `${baseUrl}/salary`,
+      lastModified,
+    },
   ];
 }
