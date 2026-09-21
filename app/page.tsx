@@ -29,6 +29,13 @@ const tools = [
     description:
       "전세금에 묶인 이자와 월세를 비교해 어느 쪽이 더 저렴한지 계산해요.",
   },
+  {
+    href: "/jeonse-vs-loan",
+    icon: "🏘️",
+    title: "대출금 상환 vs 전세 비교 계산기",
+    description:
+      "아파트를 대출받아 구매했을 때와 전세로 거주했을 때의 비용과 자산을 비교해요.",
+  },
 ] as const;
 
 export default function Home() {
