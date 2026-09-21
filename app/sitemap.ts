@@ -25,5 +25,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}/jeonse`,
       lastModified,
     },
+    {
+      url: `${baseUrl}/jeonse-vs-loan`,
+      lastModified,
+    },
   ];
 }
