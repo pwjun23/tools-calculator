@@ -54,8 +54,9 @@ WordPress 코어 REST API는 기본적으로 Yoast SEO의 포커스 키워드/�
    필요 없다는 뜻이고, `✗`가 나오면 위 mu-plugin을 설치한 뒤 다시 실행하세요. 생성된 진단용
    draft 글은 WordPress 관리자에서 확인 후 삭제해도 됩니다.
 
-   `add-seo`/`batch-update-meta` 실행 시에도 응답에 메타가 반영되지 않으면 동일한 안내가
-   경고로 출력됩니다.
+   `add-seo`/`batch-update-meta` 실행 시에도 응답에 메타가 반영되지 않으면 각 대상 글마다
+   동일한 안내가 `⚠` 경고로 콘솔에 출력되고, 실행 로그(jsonl)에도 `warning` 필드로 함께
+   기록됩니다.
 
 ## 4. 명령어 사용법
 
@@ -78,7 +79,7 @@ npm run cli -- create --title "글 제목" --content-file ./post.html --publish
 | `--tags` | 태그 이름을 **쉼표(,)**로 구분해 전달 (생략 시 `default_tags`) |
 | `--focus-keyword` | Yoast 포커스 키워드 (선택) |
 | `--meta-description` | Yoast 메타 디스크립션 (선택) |
-| `--dry-run` | 실제 요청을 보내지 않고 WordPress에 보낼 요청(method/url/body)만 출력 |
+| `--dry-run` | 실제 요청을 보내지 않고 `{ id: 0, url: "(dry-run)", status }` 형태의 미리보기 결과만 출력 |
 | `--publish` | 즉시 발행. 생략하면 항상 `draft`로 생성됩니다 |
 
 ### update — 기존 글 수정
@@ -160,7 +161,9 @@ npm run cli -- batch-update-meta --file ./meta.json
 | `--file` | `.csv` 또는 `.json` 파일 경로 (필수) |
 | `--dry-run` | 실제 요청을 보내지 않고 미리보기만 출력 (각 행에 적용) |
 
-각 행이 `add-seo`와 동일하게 처리되며, 한 행이 실패해도 나머지 행 처리는 계속됩니다.
+각 행이 `add-seo`와 동일하게 처리되며, 한 행이 실패해도 나머지 행 처리는 계속됩니다. 특정 글의
+메타가 반영되지 않으면(mu-plugin 미설치 등) 그 글의 ID를 포함한 `⚠` 경고가 행마다 콘솔에
+출력되고 로그에도 `warning` 필드로 기록됩니다.
 
 ## 5. CSV/JSON 스키마
 
@@ -184,7 +187,7 @@ npm run cli -- batch-update-meta --file ./meta.json
 
 ```csv
 title,content_file,category,tags,focus_keyword,meta_description,publish_at_kst
-"전세 대출 계산기",post1.html,부동산,계산기;금융,전세대출,전세 대출 이자 계산 방법
+"전세 대출 계산기",post1.html,부동산,계산기;금융,전세대출,전세 대출 이자 계산 방법,
 ```
 
 **JSON** (camelCase, `PostInput` 형태를 그대로 배열로 작성; 태그는 배열, SEO는 객체):
@@ -233,10 +236,14 @@ id,focus_keyword,meta_description
 - **`--publish`**: 즉시 공개 발행(`status: publish`)합니다. `create`/`update`/`batch-create`에서만
   의미가 있습니다.
 - **`--dry-run`**: 모든 명령(`create`/`update`/`add-seo`/`schedule`/`batch-create`/`batch-update-meta`)에서
-  공통으로 지원됩니다. 실제 HTTP 요청을 WordPress로 보내지 않고, 대신 어떤
-  `method`/`url`/`body`가 전송될지 콘솔에 출력해 미리 확인할 수 있습니다(응답의 글 `id`는
-  `0`, `url`은 `"(dry-run)"`으로 표시됩니다). `--publish`와 함께 써도 실제 발행은 되지
-  않습니다.
+  공통으로 지원됩니다. 실제 HTTP 요청을 WordPress로 보내지 않고, 대신 그 자리에서 만들어질
+  결과를 흉내낸 미리보기 객체(`{ id, url: "(dry-run)", status }`)만 콘솔에 출력합니다.
+  WordPress로 보내질 실제 `method`/`url`/`body`는 이 미리보기에 포함되지 않습니다. `--publish`와
+  함께 써도 실제 발행은 되지 않습니다.
+  - `create`/`schedule`처럼 새 글을 만드는 명령은 아직 실제 글이 없으므로 `id: 0`이 나옵니다
+    (`schedule`은 `status: "future"`가 나옵니다).
+  - `update`/`add-seo`처럼 기존 글을 대상으로 하는 명령은 요청에 사용한 실제 `id`를 그대로
+    돌려주고, `status`는 `"(변경 없음)"`으로 표시됩니다.
 - **`schedule`**은 항상 `status: future` + 지정 시각으로 등록되며 `--publish` 플래그를 받지
   않습니다(예약 자체가 미래 발행이므로 별도 옵션이 필요 없습니다).
 - **`add-seo`/`batch-update-meta`**는 발행 상태를 바꾸지 않고 메타 필드만 갱신합니다.
@@ -258,6 +265,8 @@ id,focus_keyword,meta_description
 - `status`: `success` 또는 `error`
 - `postId`, `url`: 성공 시 WordPress가 반환한 글 ID/링크
 - `error`: 실패 시 에러 메시지
+- `warning`: `add-seo`/`batch-update-meta`에서 메타가 실제로 반영되지 않았을 때만 존재하는
+  안내 메시지 (그 외에는 필드 자체가 없습니다)
 
 `batch-create`/`batch-update-meta`는 파일의 각 행마다 한 줄씩 기록되므로, 몇 번째 행이
 실패했는지 로그로 확인할 수 있습니다. CLI 종료 시 콘솔에도 `성공 N / 실패 M` 요약이

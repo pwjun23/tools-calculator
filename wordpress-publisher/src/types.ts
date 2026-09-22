@@ -38,7 +38,7 @@ export function isDryRunResult(value: unknown): value is WpDryRunResult {
 export interface ReportItem {
   input: unknown;
   status: "success" | "error";
-  result?: PostResult;
+  result?: PostResult & { warning?: string };
   error?: string;
 }
 

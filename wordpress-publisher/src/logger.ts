@@ -8,6 +8,7 @@ export interface LogEntryInput {
   postId?: number;
   url?: string;
   error?: string;
+  warning?: string;
 }
 
 export interface RunLogger {

@@ -96,7 +96,7 @@ async function main() {
       console.log(`성공 ${report.success} / 실패 ${report.failed}`);
     } else if (command === "batch-update-meta") {
       const report = await bulkUpdateMeta(client, config, String(flags.file));
-      report.items.forEach((item) =>
+      report.items.forEach((item) => {
         logger.log({
           action: "batch-update-meta",
           input: item.input,
@@ -104,8 +104,12 @@ async function main() {
           postId: item.result?.id,
           url: item.result?.url,
           error: item.error,
-        }),
-      );
+          warning: item.result?.warning,
+        });
+        if (item.result?.warning) {
+          console.warn(`\n⚠ post ${item.result.id}: ${item.result.warning}`);
+        }
+      });
       console.log(`성공 ${report.success} / 실패 ${report.failed}`);
     } else {
       throw new Error(`알 수 없는 명령입니다: ${command}`);
