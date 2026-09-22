@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { TOOLS } from "@/lib/tools";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://tools.molespapa.com";
@@ -9,25 +10,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: baseUrl,
       lastModified,
     },
-    {
-      url: `${baseUrl}/freelancer`,
+    ...TOOLS.map((tool) => ({
+      url: `${baseUrl}${tool.href}`,
       lastModified,
-    },
-    {
-      url: `${baseUrl}/salary`,
-      lastModified,
-    },
-    {
-      url: `${baseUrl}/car`,
-      lastModified,
-    },
-    {
-      url: `${baseUrl}/jeonse`,
-      lastModified,
-    },
-    {
-      url: `${baseUrl}/jeonse-vs-loan`,
-      lastModified,
-    },
+    })),
   ];
 }
