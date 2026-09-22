@@ -1,7 +1,8 @@
 import { createTaxonomyResolver } from "./taxonomy.ts";
 import { isDryRunResult } from "./types.ts";
+import { kstToUtc, toWpDateGmt } from "./schedule.ts";
 import type { WpClient } from "./client.ts";
-import type { PostInput, PostResult, ResolvedConfig, PostPatch, SeoMetaInput } from "./types.ts";
+import type { PostInput, PostResult, ResolvedConfig, PostPatch, SeoMetaInput, ScheduleInput } from "./types.ts";
 
 interface WpPostResponse {
   id: number;
@@ -140,4 +141,44 @@ export async function addSeoMeta(
       ? "WordPress가 Yoast 메타를 저장하지 않았습니다. wp-content/mu-plugins/enable-yoast-rest-meta.php를 사이트에 설치했는지 확인하세요."
       : undefined,
   };
+}
+
+export async function schedulePost(
+  client: WpClient,
+  config: ResolvedConfig,
+  input: ScheduleInput,
+  opts: { now?: Date } = {},
+): Promise<PostResult> {
+  const utc = kstToUtc(input.publishAtKst, opts.now);
+  const { publishAtKst, ...rest } = input;
+
+  const taxonomy = createTaxonomyResolver(client);
+  const categoryName = rest.category ?? config.defaultCategory;
+  const tagNames = rest.tags ?? config.defaultTags;
+  const [categoryId, tagIds] = await Promise.all([
+    categoryName ? taxonomy.resolveCategoryId(categoryName) : Promise.resolve(undefined),
+    taxonomy.resolveTagIds(tagNames),
+  ]);
+
+  const body: Record<string, unknown> = {
+    title: rest.title,
+    content: rest.contentHtml,
+    status: "future",
+    date_gmt: toWpDateGmt(utc),
+  };
+  if (categoryId !== undefined) body.categories = [categoryId];
+  if (tagIds.length > 0) body.tags = tagIds;
+  const meta = buildSeoMeta(rest.seo);
+  if (meta) body.meta = meta;
+
+  const response = await client.request<WpPostResponse>({
+    method: "POST",
+    path: "/posts",
+    body,
+  });
+
+  if (isDryRunResult(response)) {
+    return { id: 0, url: "(dry-run)", status: "future" };
+  }
+  return { id: response.id, url: response.link, status: response.status };
 }

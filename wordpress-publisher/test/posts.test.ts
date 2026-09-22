@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createPost, addSeoMeta, updatePost } from "../src/posts.ts";
+import { createPost, addSeoMeta, updatePost, schedulePost } from "../src/posts.ts";
 import type { WpClient } from "../src/client.ts";
 import type { ResolvedConfig } from "../src/types.ts";
 
@@ -203,5 +203,43 @@ describe("addSeoMeta", () => {
 
     expect(result.warning).toBeUndefined();
     expect(result.id).toBe(123);
+  });
+});
+
+describe("schedulePost", () => {
+  it("status: future와 date_gmt를 포함해 createPost와 같은 방식으로 등록한다", async () => {
+    const client = clientReturning([
+      [{ id: 9, name: "부동산" }],
+      [{ id: 1, name: "계산기" }],
+      [{ id: 2, name: "금융" }],
+      { id: 1, link: "u", status: "future" },
+    ]);
+
+    const now = new Date("2026-09-01T00:00:00.000Z");
+    await schedulePost(
+      client,
+      config,
+      { title: "t", contentHtml: "c", publishAtKst: "2026-09-28 09:00" },
+      { now },
+    );
+
+    const body = (client.request as ReturnType<typeof vi.fn>).mock.calls[3][0].body;
+    expect(body.status).toBe("future");
+    expect(body.date_gmt).toBe("2026-09-28T00:00:00");
+  });
+
+  it("과거 시각이면 요청 없이 에러를 던진다", async () => {
+    const client = clientReturning([]);
+    const now = new Date("2026-10-01T00:00:00.000Z");
+
+    await expect(
+      schedulePost(
+        client,
+        config,
+        { title: "t", contentHtml: "c", publishAtKst: "2026-09-28 09:00" },
+        { now },
+      ),
+    ).rejects.toThrow(/과거/);
+    expect(client.request).not.toHaveBeenCalled();
   });
 });
