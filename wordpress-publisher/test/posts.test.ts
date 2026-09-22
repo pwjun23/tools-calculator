@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createPost } from "../src/posts.ts";
+import { createPost, addSeoMeta, updatePost } from "../src/posts.ts";
 import type { WpClient } from "../src/client.ts";
 import type { ResolvedConfig } from "../src/types.ts";
 
@@ -125,5 +125,83 @@ describe("createPost", () => {
     const result = await createPost(client, config, { title: "t", contentHtml: "c" });
 
     expect(result).toEqual({ id: 0, url: "(dry-run)", status: "draft" });
+  });
+});
+
+describe("updatePost", () => {
+  it("바뀐 필드만 PATCH 본문에 담아 /posts/{id}에 보낸다", async () => {
+    const client = clientReturning([
+      { id: 123, link: "u", status: "draft", meta: {} },
+    ]);
+
+    await updatePost(client, config, 123, { title: "새 제목" });
+
+    expect((client.request as ReturnType<typeof vi.fn>).mock.calls[0][0]).toEqual({
+      method: "POST",
+      path: "/posts/123",
+      body: { title: "새 제목" },
+    });
+  });
+
+  it("opts.publish 없이 status를 patch에 넣으면 draft로 강제한다", async () => {
+    const client = clientReturning([{ id: 1, link: "u", status: "draft", meta: {} }]);
+
+    await updatePost(client, config, 1, { status: "publish" });
+
+    const body = (client.request as ReturnType<typeof vi.fn>).mock.calls[0][0].body;
+    expect(body.status).toBe("draft");
+  });
+
+  it("dry-run이면 실제 요청 없이 미리보기 결과를 반환한다", async () => {
+    const client = clientReturning([], true);
+
+    const result = await updatePost(client, config, 5, { title: "t" });
+
+    expect(result).toEqual({ id: 5, url: "(dry-run)", status: "(변경 없음)" });
+  });
+});
+
+describe("addSeoMeta", () => {
+  it("meta 필드로 얇게 위임하고, 응답에 값이 반영됐으면 경고가 없다", async () => {
+    const client = clientReturning([
+      {
+        id: 123,
+        link: "u",
+        status: "publish",
+        meta: { _yoast_wpseo_focuskw: "전세", _yoast_wpseo_metadesc: "설명" },
+      },
+    ]);
+
+    const result = await addSeoMeta(client, config, 123, {
+      focusKeyword: "전세",
+      metaDescription: "설명",
+    });
+
+    expect(result.warning).toBeUndefined();
+    const body = (client.request as ReturnType<typeof vi.fn>).mock.calls[0][0].body;
+    expect(body.meta).toEqual({
+      _yoast_wpseo_focuskw: "전세",
+      _yoast_wpseo_metadesc: "설명",
+    });
+  });
+
+  it("응답에 메타가 반영 안 되어 있으면 mu-plugin 설치를 안내하는 경고를 반환한다", async () => {
+    const client = clientReturning([{ id: 123, link: "u", status: "publish", meta: {} }]);
+
+    const result = await addSeoMeta(client, config, 123, {
+      focusKeyword: "전세",
+      metaDescription: "설명",
+    });
+
+    expect(result.warning).toMatch(/mu-plugin/);
+  });
+
+  it("dry-run이면 반영 여부를 확인하지 않고 경고 없이 미리보기 결과를 반환한다", async () => {
+    const client = clientReturning([], true);
+
+    const result = await addSeoMeta(client, config, 123, { focusKeyword: "전세" });
+
+    expect(result.warning).toBeUndefined();
+    expect(result.id).toBe(123);
   });
 });
