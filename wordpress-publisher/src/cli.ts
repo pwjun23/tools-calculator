@@ -18,22 +18,25 @@ function splitTags(value: string | true | undefined): string[] | undefined {
 }
 
 async function main() {
-  const { command, flags } = parseArgs(process.argv.slice(2));
-  const config = loadConfig(
-    { WP_USERNAME: process.env.WP_USERNAME, WP_APP_PASSWORD: process.env.WP_APP_PASSWORD },
-    readConfigJson(),
-  );
-  const dryRun = flags["dry-run"] === true;
-  const publish = flags.publish === true;
-  const client = createClient({
-    baseUrl: config.baseUrl,
-    username: config.username,
-    appPassword: config.appPassword,
-    dryRun,
-  });
   const logger = createLogger(fileURLToPath(new URL("../logs", import.meta.url)));
+  let command = "unknown";
+  let flags: Record<string, string | true> = {};
 
   try {
+    ({ command, flags } = parseArgs(process.argv.slice(2)));
+    const config = loadConfig(
+      { WP_USERNAME: process.env.WP_USERNAME, WP_APP_PASSWORD: process.env.WP_APP_PASSWORD },
+      readConfigJson(),
+    );
+    const dryRun = flags["dry-run"] === true;
+    const publish = flags.publish === true;
+    const client = createClient({
+      baseUrl: config.baseUrl,
+      username: config.username,
+      appPassword: config.appPassword,
+      dryRun,
+    });
+
     if (command === "create") {
       const input: PostInput = {
         title: String(flags.title ?? ""),
