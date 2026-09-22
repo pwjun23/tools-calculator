@@ -42,7 +42,9 @@ export function createClient(opts: WpClientOptions): WpClient {
       const url = `${opts.baseUrl}${req.path}`;
 
       if (dryRun) {
-        return { dryRun: true, method: req.method, url, body: req.body };
+        const preview: WpDryRunResult = { dryRun: true, method: req.method, url, body: req.body };
+        console.log(`[dry-run] ${preview.method} ${preview.url}`, preview.body ?? "");
+        return preview;
       }
 
       const res = await fetchImpl(url, {

@@ -236,10 +236,10 @@ id,focus_keyword,meta_description
 - **`--publish`**: 즉시 공개 발행(`status: publish`)합니다. `create`/`update`/`batch-create`에서만
   의미가 있습니다.
 - **`--dry-run`**: 모든 명령(`create`/`update`/`add-seo`/`schedule`/`batch-create`/`batch-update-meta`)에서
-  공통으로 지원됩니다. 실제 HTTP 요청을 WordPress로 보내지 않고, 대신 그 자리에서 만들어질
-  결과를 흉내낸 미리보기 객체(`{ id, url: "(dry-run)", status }`)만 콘솔에 출력합니다.
-  WordPress로 보내질 실제 `method`/`url`/`body`는 이 미리보기에 포함되지 않습니다. `--publish`와
-  함께 써도 실제 발행은 되지 않습니다.
+  공통으로 지원됩니다. 실제 HTTP 요청을 WordPress로 보내지 않습니다. 대신 WordPress로 보내질
+  실제 `method`/`url`/`body`를 `[dry-run] <method> <url> <body>` 형태로 콘솔에 먼저 출력한 뒤,
+  그 자리에서 만들어질 결과를 흉내낸 미리보기 객체(`{ id, url: "(dry-run)", status }`)를 반환/출력합니다.
+  `--publish`와 함께 써도 실제 발행은 되지 않습니다.
   - `create`/`schedule`처럼 새 글을 만드는 명령은 아직 실제 글이 없으므로 `id: 0`이 나옵니다
     (`schedule`은 `status: "future"`가 나옵니다).
   - `update`/`add-seo`처럼 기존 글을 대상으로 하는 명령은 요청에 사용한 실제 `id`를 그대로

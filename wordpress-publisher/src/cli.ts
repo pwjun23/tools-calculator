@@ -39,6 +39,7 @@ async function main() {
     });
 
     if (command === "create") {
+      if (!flags.title) throw new Error("--title 값이 필요합니다.");
       const input: PostInput = {
         title: String(flags.title ?? ""),
         contentHtml: String(flags["content-file"] ? readFileSync(String(flags["content-file"]), "utf8") : flags.content ?? ""),
@@ -53,6 +54,7 @@ async function main() {
       logger.log({ action: "create", input, status: "success", postId: result.id, url: result.url });
       console.log(result);
     } else if (command === "update") {
+      if (!flags.id || Number.isNaN(Number(flags.id))) throw new Error("--id 값(숫자)이 필요합니다.");
       const id = Number(flags.id);
       const result = await updatePost(client, config, id, {
         title: typeof flags.title === "string" ? flags.title : undefined,
@@ -62,6 +64,7 @@ async function main() {
       logger.log({ action: "update", input: { id, flags }, status: "success", postId: result.id, url: result.url });
       console.log(result);
     } else if (command === "add-seo") {
+      if (!flags.id || Number.isNaN(Number(flags.id))) throw new Error("--id 값(숫자)이 필요합니다.");
       const id = Number(flags.id);
       const result = await addSeoMeta(client, config, id, {
         focusKeyword: typeof flags["focus-keyword"] === "string" ? flags["focus-keyword"] : undefined,
@@ -71,6 +74,7 @@ async function main() {
       console.log(result);
       if (result.warning) console.warn(`\n⚠ ${result.warning}`);
     } else if (command === "schedule") {
+      if (!flags.title) throw new Error("--title 값이 필요합니다.");
       const input = {
         title: String(flags.title ?? ""),
         contentHtml: String(flags["content-file"] ? readFileSync(String(flags["content-file"]), "utf8") : flags.content ?? ""),
@@ -82,6 +86,7 @@ async function main() {
       logger.log({ action: "schedule", input, status: "success", postId: result.id, url: result.url });
       console.log(result);
     } else if (command === "batch-create") {
+      if (!flags.file) throw new Error("--file 값이 필요합니다.");
       const report = await bulkCreate(client, config, String(flags.file), { publish });
       report.items.forEach((item) =>
         logger.log({
@@ -95,6 +100,7 @@ async function main() {
       );
       console.log(`성공 ${report.success} / 실패 ${report.failed}`);
     } else if (command === "batch-update-meta") {
+      if (!flags.file) throw new Error("--file 값이 필요합니다.");
       const report = await bulkUpdateMeta(client, config, String(flags.file));
       report.items.forEach((item) => {
         logger.log({

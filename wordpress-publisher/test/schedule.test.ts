@@ -3,7 +3,7 @@ import { kstToUtc, toWpDateGmt } from "../src/schedule.ts";
 
 describe("kstToUtc", () => {
   it("KST 오전 9시는 UTC 0시다", () => {
-    const utc = kstToUtc("2026-09-28 09:00");
+    const utc = kstToUtc("2026-09-28 09:00", new Date("2026-09-01T00:00:00.000Z"));
     expect(utc.toISOString()).toBe("2026-09-28T00:00:00.000Z");
   });
 
