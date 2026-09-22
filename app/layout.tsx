@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://tools.molespapa.com"),
   title: {
     default: "도구 모음",
-    template: "%s | 도구 모음",
+    template: "%s | molespapa",
   },
   description: "실생활에 유용한 계산기 모음",
   openGraph: {
