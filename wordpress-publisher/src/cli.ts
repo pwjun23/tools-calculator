@@ -6,6 +6,7 @@ import { loadConfig } from "./config.ts";
 import { createClient } from "./client.ts";
 import { createLogger } from "./logger.ts";
 import { createPost, updatePost, addSeoMeta, schedulePost } from "./posts.ts";
+import { bulkCreate, bulkUpdateMeta } from "./batch.ts";
 import type { PostInput } from "./types.ts";
 
 function readConfigJson(): { wordpress_url: string; api_endpoint: string; default_category?: string; default_tags?: string[] } {
@@ -80,6 +81,32 @@ async function main() {
       const result = await schedulePost(client, config, input);
       logger.log({ action: "schedule", input, status: "success", postId: result.id, url: result.url });
       console.log(result);
+    } else if (command === "batch-create") {
+      const report = await bulkCreate(client, config, String(flags.file), { publish });
+      report.items.forEach((item) =>
+        logger.log({
+          action: "batch-create",
+          input: item.input,
+          status: item.status,
+          postId: item.result?.id,
+          url: item.result?.url,
+          error: item.error,
+        }),
+      );
+      console.log(`성공 ${report.success} / 실패 ${report.failed}`);
+    } else if (command === "batch-update-meta") {
+      const report = await bulkUpdateMeta(client, config, String(flags.file));
+      report.items.forEach((item) =>
+        logger.log({
+          action: "batch-update-meta",
+          input: item.input,
+          status: item.status,
+          postId: item.result?.id,
+          url: item.result?.url,
+          error: item.error,
+        }),
+      );
+      console.log(`성공 ${report.success} / 실패 ${report.failed}`);
     } else {
       throw new Error(`알 수 없는 명령입니다: ${command}`);
     }
