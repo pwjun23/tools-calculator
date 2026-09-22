@@ -33,8 +33,7 @@ export function createTaxonomyResolver(client: WpClient) {
       })) as TaxonomyItem;
       return created.id;
     } catch (e) {
-      const err = e as any;
-      if ((e instanceof WpApiError || err.name === "WpApiError") && (err.status === 401 || err.status === 403)) {
+      if (e instanceof WpApiError && (e.status === 401 || e.status === 403)) {
         throw new Error(
           `"${name}" ${labelFor(kind)}가 없고, 현재 계정에는 새로 만들 권한이 없습니다. WordPress 관리자에서 먼저 만들어 주세요.`,
         );

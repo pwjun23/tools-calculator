@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createTaxonomyResolver } from "../src/taxonomy.ts";
+import { WpApiError } from "../src/client.ts";
 import type { WpClient } from "../src/client.ts";
 
 function makeClient(dryRun: boolean, request: WpClient["request"]): WpClient {
@@ -38,7 +39,7 @@ describe("createTaxonomyResolver", () => {
 
   it("생성 권한이 없으면(403) 사람이 읽을 수 있는 에러를 던진다", async () => {
     const request = vi.fn().mockResolvedValueOnce([]).mockRejectedValueOnce(
-      Object.assign(new Error("forbidden"), { status: 403, name: "WpApiError" }),
+      new WpApiError("forbidden", 403),
     );
     const resolver = createTaxonomyResolver(makeClient(false, request as never));
 
