@@ -1,4 +1,3 @@
-import { WpApiError } from "./client";
 import type { WpClient } from "./client";
 
 type Kind = "categories" | "tags";
@@ -21,21 +20,9 @@ export function createTaxonomyResolver(client: WpClient) {
     const exact = found.find((item) => item.name === name);
     if (exact) return exact.id;
 
-    try {
-      const created = await client.request<TaxonomyItem>({
-        method: "POST",
-        path: `/${kind}`,
-        body: { name },
-      });
-      return created.id;
-    } catch (e) {
-      if (e instanceof WpApiError && (e.status === 401 || e.status === 403)) {
-        throw new Error(
-          `"${name}" ${labelFor(kind)}가 없고, 현재 계정에는 새로 만들 권한이 없습니다. WordPress 관리자에서 먼저 만들어 주세요.`,
-        );
-      }
-      throw e;
-    }
+    throw new Error(
+      `"${name}" ${labelFor(kind)}가 없습니다. WordPress 관리자에서 먼저 만들어 주세요.`,
+    );
   }
 
   return {
