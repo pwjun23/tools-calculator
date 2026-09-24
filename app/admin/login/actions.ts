@@ -15,7 +15,7 @@ export async function login(formData: FormData): Promise<{ error?: string }> {
   const cookieStore = await cookies();
   cookieStore.set("admin_session", await createSessionCookieValue(), {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
     path: "/",
     maxAge: 60 * 60 * 24 * 30, // 30일
