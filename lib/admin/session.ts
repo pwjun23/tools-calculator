@@ -7,13 +7,16 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 export async function createSessionCookieValue(): Promise<string> {
-  const password = process.env.ADMIN_PASSWORD ?? "";
+  const password = process.env.ADMIN_PASSWORD;
+  if (!password) {
+    throw new Error("ADMIN_PASSWORD 환경변수가 설정되어 있지 않습니다.");
+  }
   return hashPassword(password);
 }
 
 export async function isValidSessionCookie(
   value: string | undefined,
 ): Promise<boolean> {
-  if (!value) return false;
+  if (!value || !process.env.ADMIN_PASSWORD) return false;
   return value === (await createSessionCookieValue());
 }

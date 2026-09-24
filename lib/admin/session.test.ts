@@ -50,4 +50,16 @@ describe("createSessionCookieValue / isValidSessionCookie", () => {
     process.env.ADMIN_PASSWORD = "new-secret";
     await expect(isValidSessionCookie(oldValue)).resolves.toBe(false);
   });
+
+  it("ADMIN_PASSWORD가 설정되어 있지 않으면 에러를 던진다", async () => {
+    delete process.env.ADMIN_PASSWORD;
+    await expect(createSessionCookieValue()).rejects.toThrow();
+  });
+
+  it("ADMIN_PASSWORD가 없으면 빈 문자열 해시(공개적으로 알려진 값)로도 통과하지 않는다", async () => {
+    delete process.env.ADMIN_PASSWORD;
+    await expect(
+      isValidSessionCookie(await hashPassword("")),
+    ).resolves.toBe(false);
+  });
 });
