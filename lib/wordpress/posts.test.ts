@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   addSeoMeta,
   createPost,
+  formatDateGmtAsKst,
   kstToUtc,
   schedulePost,
   toWpDateGmt,
@@ -29,6 +30,16 @@ describe("kstToUtc", () => {
 describe("toWpDateGmt", () => {
   it("초 단위, Z 없는 형식으로 만든다", () => {
     expect(toWpDateGmt(new Date("2026-09-28T00:00:00.000Z"))).toBe("2026-09-28T00:00:00");
+  });
+});
+
+describe("formatDateGmtAsKst", () => {
+  it("Z 없는 WordPress date_gmt를 한국시간 문자열로 바꾼다", () => {
+    expect(formatDateGmtAsKst("2026-09-24T16:25:00")).toBe("2026-09-25 01:25");
+  });
+
+  it("자정을 넘어 날짜가 바뀌는 경우도 처리한다", () => {
+    expect(formatDateGmtAsKst("2026-09-28T15:00:00")).toBe("2026-09-29 00:00");
   });
 });
 

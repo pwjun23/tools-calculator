@@ -1,3 +1,4 @@
+import { formatDateGmtAsKst } from "@/lib/wordpress/posts";
 import { listScheduledAction } from "../actions";
 
 export async function ScheduledList() {
@@ -21,7 +22,7 @@ export async function ScheduledList() {
         <li key={p.id} className="flex items-center justify-between gap-3 py-2">
           <span>{p.title}</span>
           <span className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
-            {p.dateGmt} UTC
+            {formatDateGmtAsKst(p.dateGmt)} (한국시간)
             <a href={p.link} target="_blank" rel="noreferrer" className="underline">
               편집
             </a>
