@@ -8,7 +8,11 @@ type MetaRow = SeoMetaInput & { id: number };
 
 export function parseBulkCreateRows(text: string, format: "json" | "csv"): BulkRow[] {
   if (format === "json") {
-    return JSON.parse(text) as BulkRow[];
+    const parsed = JSON.parse(text);
+    if (!Array.isArray(parsed)) {
+      throw new Error("JSON은 배열 형식이어야 합니다.");
+    }
+    return parsed as BulkRow[];
   }
   const rows = parseCsv(text, { columns: true, skip_empty_lines: true }) as Record<string, string>[];
   return rows.map((row) => ({
@@ -42,7 +46,7 @@ export async function bulkCreate(
       report.items.push({ input: row, status: "success", result });
     } catch (e) {
       report.failed += 1;
-      report.items.push({ input: row, status: "error", error: (e as Error).message });
+      report.items.push({ input: row, status: "error", error: e instanceof Error ? e.message : String(e) });
     }
   }
   return report;
@@ -50,7 +54,11 @@ export async function bulkCreate(
 
 export function parseBulkMetaRows(text: string, format: "json" | "csv"): MetaRow[] {
   if (format === "json") {
-    return JSON.parse(text) as MetaRow[];
+    const parsed = JSON.parse(text);
+    if (!Array.isArray(parsed)) {
+      throw new Error("JSON은 배열 형식이어야 합니다.");
+    }
+    return parsed as MetaRow[];
   }
   const rows = parseCsv(text, { columns: true, skip_empty_lines: true }) as Record<string, string>[];
   return rows.map((row) => ({
@@ -74,7 +82,7 @@ export async function bulkUpdateMeta(
       report.items.push({ input: row, status: "success", result });
     } catch (e) {
       report.failed += 1;
-      report.items.push({ input: row, status: "error", error: (e as Error).message });
+      report.items.push({ input: row, status: "error", error: e instanceof Error ? e.message : String(e) });
     }
   }
   return report;
