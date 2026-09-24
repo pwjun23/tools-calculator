@@ -30,11 +30,15 @@ export function SinglePostForm() {
     };
 
     startTransition(async () => {
-      const r =
-        mode === "schedule"
-          ? await scheduleAction({ ...input, publishAtKst: publishAt })
-          : await createPostAction(input, mode === "publish");
-      setResult(r);
+      try {
+        const r =
+          mode === "schedule"
+            ? await scheduleAction({ ...input, publishAtKst: publishAt })
+            : await createPostAction(input, mode === "publish");
+        setResult(r);
+      } catch {
+        setResult({ ok: false, error: "세션이 만료되었습니다. 다시 로그인해 주세요." });
+      }
     });
   }
 

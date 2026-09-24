@@ -25,8 +25,12 @@ export function BulkUploadForm() {
 
   function submit() {
     startTransition(async () => {
-      const r = kind === "create" ? await bulkCreateAction(text, format, publish) : await bulkUpdateMetaAction(text, format);
-      setResult(r);
+      try {
+        const r = kind === "create" ? await bulkCreateAction(text, format, publish) : await bulkUpdateMetaAction(text, format);
+        setResult(r);
+      } catch {
+        setResult({ ok: false, error: "세션이 만료되었습니다. 다시 로그인해 주세요." });
+      }
     });
   }
 
@@ -47,7 +51,7 @@ export function BulkUploadForm() {
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="JSON 배열 또는 CSV 텍스트를 붙여넣으세요"
+        placeholder="JSON 배열 또는 CSV 텍스트를 붙여넣으세요 (한 번에 최대 15건)"
         rows={8}
         className="w-full rounded-xl border border-slate-300 px-4 py-2 font-mono text-sm dark:border-slate-700 dark:bg-slate-950"
       />

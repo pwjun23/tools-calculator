@@ -8,6 +8,8 @@ import { bulkCreate, bulkUpdateMeta, parseBulkCreateRows, parseBulkMetaRows } fr
 import { isValidSessionCookie } from "@/lib/admin/session";
 import type { PostInput, Report, ScheduleInput } from "@/lib/wordpress/types";
 
+const MAX_BULK_ROWS = 15;
+
 async function requireAdmin(): Promise<void> {
   const cookieStore = await cookies();
   const value = cookieStore.get("admin_session")?.value;
@@ -64,6 +66,9 @@ export async function bulkCreateAction(
   await requireAdmin();
   try {
     const rows = parseBulkCreateRows(text, format);
+    if (rows.length > MAX_BULK_ROWS) {
+      throw new Error(`한 번에 최대 ${MAX_BULK_ROWS}건까지 처리할 수 있습니다. 파일을 나눠서 올려주세요.`);
+    }
     const { client: c, config } = client();
     const report = await bulkCreate(c, config, rows, { publish });
     return { ok: true, report };
@@ -79,6 +84,9 @@ export async function bulkUpdateMetaAction(
   await requireAdmin();
   try {
     const rows = parseBulkMetaRows(text, format);
+    if (rows.length > MAX_BULK_ROWS) {
+      throw new Error(`한 번에 최대 ${MAX_BULK_ROWS}건까지 처리할 수 있습니다. 파일을 나눠서 올려주세요.`);
+    }
     const { client: c, config } = client();
     const report = await bulkUpdateMeta(c, config, rows);
     return { ok: true, report };
@@ -94,12 +102,18 @@ export interface ScheduledPostSummary {
   link: string;
 }
 
-export async function listScheduledAction(): Promise<ScheduledPostSummary[]> {
+export async function listScheduledAction(): Promise<
+  { ok: true; posts: ScheduledPostSummary[] } | { ok: false; error: string }
+> {
   await requireAdmin();
-  const { client: c } = client();
-  const posts = await c.request<Array<{ id: number; title: { rendered: string }; date_gmt: string; link: string }>>({
-    method: "GET",
-    path: "/posts?status=future&per_page=50&context=edit",
-  });
-  return posts.map((p) => ({ id: p.id, title: p.title.rendered, dateGmt: p.date_gmt, link: p.link }));
+  try {
+    const { client: c } = client();
+    const posts = await c.request<Array<{ id: number; title: { rendered: string }; date_gmt: string; link: string }>>({
+      method: "GET",
+      path: "/posts?status=future&per_page=50&context=edit",
+    });
+    return { ok: true, posts: posts.map((p) => ({ id: p.id, title: p.title.rendered, dateGmt: p.date_gmt, link: p.link })) };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
 }
