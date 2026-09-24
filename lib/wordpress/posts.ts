@@ -31,6 +31,14 @@ export function toWpDateGmt(date: Date): string {
   return date.toISOString().replace(/\.\d{3}Z$/, "");
 }
 
+/** WordPress의 date_gmt(오프셋 없는 UTC 문자열)를 "YYYY-MM-DD HH:mm" 한국시간 문자열로 바꾼다. */
+export function formatDateGmtAsKst(dateGmt: string): string {
+  const iso = dateGmt.endsWith("Z") ? dateGmt : `${dateGmt}Z`;
+  const kst = new Date(new Date(iso).getTime() + KST_OFFSET_MS);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${kst.getUTCFullYear()}-${pad(kst.getUTCMonth() + 1)}-${pad(kst.getUTCDate())} ${pad(kst.getUTCHours())}:${pad(kst.getUTCMinutes())}`;
+}
+
 interface WpPostResponse {
   id: number;
   link: string;
