@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { refresh } from "next/cache";
 import { createClient } from "@/lib/wordpress/client";
 import { loadConfig } from "@/lib/wordpress/config";
 import { createPost, schedulePost } from "@/lib/wordpress/posts";
@@ -38,6 +39,7 @@ export async function createPostAction(
     requireTitle(input);
     const { client: c, config } = client();
     const result = await createPost(c, config, input, { publish });
+    refresh();
     return { ok: true, ...result };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
@@ -52,6 +54,7 @@ export async function scheduleAction(
     requireTitle(input);
     const { client: c, config } = client();
     const result = await schedulePost(c, config, input);
+    refresh();
     return { ok: true, ...result };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
@@ -71,6 +74,7 @@ export async function bulkCreateAction(
     }
     const { client: c, config } = client();
     const report = await bulkCreate(c, config, rows, { publish });
+    refresh();
     return { ok: true, report };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
