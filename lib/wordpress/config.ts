@@ -5,9 +5,7 @@ const API_ENDPOINT = "/wp-json/wp/v2";
 const DEFAULT_CATEGORY = "부동산";
 const DEFAULT_TAGS = ["계산기", "금융"];
 
-export function loadConfig(
-  env: Pick<NodeJS.ProcessEnv, "WP_USERNAME" | "WP_APP_PASSWORD">,
-): ResolvedConfig {
+export function loadConfig(env: NodeJS.ProcessEnv): ResolvedConfig {
   const username = env.WP_USERNAME;
   if (!username) {
     throw new Error("WP_USERNAME 환경변수가 설정되어 있지 않습니다.");
