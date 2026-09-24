@@ -29,17 +29,29 @@ export function SinglePostForm() {
       tags: tagList.length > 0 ? tagList : undefined,
     };
 
+    if (mode === "schedule" && !publishAt) {
+      setResult({ ok: false, error: "예약 날짜/시간을 선택해 주세요." });
+      return;
+    }
+
     startTransition(async () => {
       try {
         const r =
           mode === "schedule"
-            ? await scheduleAction({ ...input, publishAtKst: publishAt })
+            ? await scheduleAction({ ...input, publishAtKst: publishAt.replace("T", " ") })
             : await createPostAction(input, mode === "publish");
         setResult(r);
       } catch {
         setResult({ ok: false, error: "세션이 만료되었습니다. 다시 로그인해 주세요." });
       }
     });
+  }
+
+  function minDateTimeLocal(): string {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 1);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
   }
 
   return (
@@ -81,12 +93,18 @@ export function SinglePostForm() {
         ))}
       </div>
       {mode === "schedule" && (
-        <input
-          value={publishAt}
-          onChange={(e) => setPublishAt(e.target.value)}
-          placeholder="2026-09-28 09:00 (한국 시간)"
-          className="w-full rounded-xl border border-slate-300 px-4 py-2 dark:border-slate-700 dark:bg-slate-950"
-        />
+        <div className="space-y-1">
+          <input
+            type="datetime-local"
+            value={publishAt}
+            onChange={(e) => setPublishAt(e.target.value)}
+            min={minDateTimeLocal()}
+            className="w-full rounded-xl border border-slate-300 px-4 py-2 dark:border-slate-700 dark:bg-slate-950"
+          />
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            브라우저에 설정된 시간대(보통 한국 시간) 기준으로 예약됩니다.
+          </p>
+        </div>
       )}
       <button
         type="button"
