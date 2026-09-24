@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createTaxonomyResolver } from "./taxonomy";
+import { WpApiError } from "./client";
 import type { WpClient } from "./client";
 
 describe("createTaxonomyResolver", () => {
@@ -17,14 +18,29 @@ describe("createTaxonomyResolver", () => {
     });
   });
 
-  it("이름이 없으면 곧바로 명확한 에러를 던진다", async () => {
-    const request = vi.fn(async () => []);
+  it("이름이 없으면 새로 만들어서 id를 반환한다", async () => {
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce({ id: 42, name: "새카테고리" });
     const resolver = createTaxonomyResolver({ request } as unknown as WpClient);
 
-    await expect(resolver.resolveCategoryId("새카테고리")).rejects.toThrow(
-      /"새카테고리".*카테고리가 없습니다/,
-    );
-    expect(request).toHaveBeenCalledTimes(1);
+    await expect(resolver.resolveCategoryId("새카테고리")).resolves.toBe(42);
+    expect(request).toHaveBeenLastCalledWith({
+      method: "POST",
+      path: "/categories",
+      body: { name: "새카테고리" },
+    });
+  });
+
+  it("생성 권한이 없으면(403) 사람이 읽을 수 있는 에러를 던진다", async () => {
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce([])
+      .mockRejectedValueOnce(new WpApiError("forbidden", 403));
+    const resolver = createTaxonomyResolver({ request } as unknown as WpClient);
+
+    await expect(resolver.resolveCategoryId("새카테고리")).rejects.toThrow(/권한이 없습니다/);
   });
 
   it("여러 태그 이름을 병렬로 id 배열로 바꾼다", async () => {
