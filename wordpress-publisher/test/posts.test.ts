@@ -126,6 +126,55 @@ describe("createPost", () => {
 
     expect(result).toEqual({ id: 0, url: "(dry-run)", status: "draft" });
   });
+
+  it("calculator를 지정하면 본문 끝에 계산기 CTA가 붙는다", async () => {
+    const client = clientReturning([
+      [{ id: 9, name: "부동산" }],
+      [{ id: 1, name: "계산기" }],
+      [{ id: 2, name: "금융" }],
+      { id: 1, link: "u", status: "draft" },
+    ]);
+
+    await createPost(client, config, { title: "t", contentHtml: "<p>본문</p>", calculator: "salary" });
+
+    const body = (client.request as ReturnType<typeof vi.fn>).mock.calls[3][0].body;
+    expect(body.content).toContain("https://tools.molespapa.com/salary");
+  });
+
+  it("alt 텍스트가 없는 이미지가 있으면 카테고리/태그 조회 없이 바로 에러를 던진다", async () => {
+    const client = clientReturning([]);
+
+    await expect(
+      createPost(client, config, {
+        title: "t",
+        contentHtml: "c",
+        images: [{ url: "https://x.com/a.png", alt: "" }],
+      }),
+    ).rejects.toThrow(/alt/);
+    expect(client.request).not.toHaveBeenCalled();
+  });
+
+  it("seo.relatedKeywords가 있으면 _yoast_wpseo_focuskeywords로 저장한다", async () => {
+    const client = clientReturning([
+      [{ id: 9, name: "부동산" }],
+      [{ id: 1, name: "계산기" }],
+      [{ id: 2, name: "금융" }],
+      { id: 1, link: "u", status: "draft" },
+    ]);
+
+    await createPost(client, config, {
+      title: "t",
+      contentHtml: "c",
+      internalLinks: [],
+      seo: { relatedKeywords: ["전세", "대출"] },
+    });
+
+    const body = (client.request as ReturnType<typeof vi.fn>).mock.calls[3][0].body;
+    expect(JSON.parse(body.meta._yoast_wpseo_focuskeywords)).toEqual([
+      { keyword: "전세", score: "0" },
+      { keyword: "대출", score: "0" },
+    ]);
+  });
 });
 
 describe("updatePost", () => {
@@ -158,6 +207,24 @@ describe("updatePost", () => {
     const result = await updatePost(client, config, 5, { title: "t" });
 
     expect(result).toEqual({ id: 5, url: "(dry-run)", status: "(변경 없음)" });
+  });
+
+  it("contentHtml 없이 calculator만 주면 에러를 던진다", async () => {
+    const client = clientReturning([]);
+
+    await expect(updatePost(client, config, 5, { calculator: "salary" })).rejects.toThrow(
+      /contentHtml/,
+    );
+    expect(client.request).not.toHaveBeenCalled();
+  });
+
+  it("contentHtml과 calculator를 함께 주면 CTA가 붙은 본문으로 PATCH한다", async () => {
+    const client = clientReturning([{ id: 5, link: "u", status: "draft", meta: {} }]);
+
+    await updatePost(client, config, 5, { contentHtml: "<p>새 본문</p>", calculator: "salary" });
+
+    const body = (client.request as ReturnType<typeof vi.fn>).mock.calls[0][0].body;
+    expect(body.content).toContain("https://tools.molespapa.com/salary");
   });
 });
 
