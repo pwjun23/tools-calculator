@@ -58,10 +58,22 @@ async function main() {
     } else if (command === "update") {
       if (!flags.id || Number.isNaN(Number(flags.id))) throw new Error("--id 값(숫자)이 필요합니다.");
       const id = Number(flags.id);
+      const contentHtml = flags["content-file"]
+        ? readFileSync(String(flags["content-file"]), "utf8")
+        : typeof flags.content === "string"
+          ? flags.content
+          : undefined;
       const result = await updatePost(client, config, id, {
         title: typeof flags.title === "string" ? flags.title : undefined,
+        contentHtml,
         category: typeof flags.category === "string" ? flags.category : undefined,
         tags: splitTags(flags.tags),
+        calculator: typeof flags.calculator === "string" ? flags.calculator : undefined,
+        seo: flags["focus-keyword"] || flags["meta-description"] || flags["related-keywords"] ? {
+          focusKeyword: typeof flags["focus-keyword"] === "string" ? flags["focus-keyword"] : undefined,
+          metaDescription: typeof flags["meta-description"] === "string" ? flags["meta-description"] : undefined,
+          relatedKeywords: splitTags(flags["related-keywords"]),
+        } : undefined,
       }, { publish });
       logger.log({ action: "update", input: { id, flags }, status: "success", postId: result.id, url: result.url });
       console.log(result);
