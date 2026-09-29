@@ -30,8 +30,13 @@ export const CALCULATORS: Record<string, CalculatorInfo> = {
   },
 };
 
+/** "/jeonse-vs-loan"처럼 앞에 슬래시가 붙어 와도 받아들이도록 슬러그를 정규화한다. */
+function normalizeSlug(slug: string): string {
+  return slug.trim().replace(/^\/+|\/+$/g, "");
+}
+
 export function resolveCalculator(slug: string): CalculatorInfo {
-  const info = CALCULATORS[slug];
+  const info = CALCULATORS[normalizeSlug(slug)];
   if (!info) {
     throw new Error(
       `알 수 없는 계산기 슬러그입니다: "${slug}". 사용 가능한 값: ${Object.keys(CALCULATORS).join(", ")}`,

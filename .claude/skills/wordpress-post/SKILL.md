@@ -30,8 +30,10 @@ description: Draft a blog post for tools.molespapa.com (WordPress) in this chat 
   써넣는다 — 마커 개수만큼 앞에서부터 이미지가 채워지고, 남는 이미지는 본문 끝에 자동으로
   붙는다. 마커가 이미지보다 많으면 에러이므로 마커 개수 ≤ 이미지 개수를 지킨다.
 - **계산기 연동** — 글 내용이 이 사이트의 계산기(연봉/프리랜서/자동차/전세이자/전세vs대출)와
-  관련 있으면 `calculator` 슬러그(`salary`/`freelancer`/`car`/`jeonse`/`jeonse-vs-loan`)를
-  넣을지 물어본다. 넣으면 본문 끝에 해당 계산기로 연결되는 CTA가 자동으로 붙는다.
+  관련 있으면 `calculator` 슬러그(`salary`/`freelancer`/`car`/`jeonse`/`jeonse-vs-loan`, 앞에
+  `/`를 붙여 `/jeonse-vs-loan`처럼 써도 된다)를 넣을지 물어본다. 넣으면 본문 끝에 해당
+  계산기로 연결되는 CTA가 자동으로 붙는다. `/calculator/jeonse-vs-loan`처럼 다른 경로 조각이
+  섞이면 여전히 에러이니, 사이트 실제 주소(`tools.molespapa.com/<슬러그>`)와 똑같이 쓴다.
 - **관련 글** — 명시적으로 링크하고 싶은 글이 있으면 `internalLinks`로 직접 준다. 없지만
   주제와 관련된 검색어가 있으면 `seo.relatedKeywords`만 채워도 된다 — 실제 발행 시 그
   키워드로 기존 워드프레스 글을 검색해 "함께 보면 좋은 글" 섹션을 자동으로 채운다(단
