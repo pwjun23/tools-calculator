@@ -21,9 +21,16 @@ function parseCsvRows(filePath: string): BulkRow[] {
       : row.content ?? "",
     category: row.category || undefined,
     tags: row.tags ? row.tags.split(";").map((t) => t.trim()).filter(Boolean) : undefined,
+    calculator: row.calculator || undefined,
     seo:
-      row.focus_keyword || row.meta_description
-        ? { focusKeyword: row.focus_keyword || undefined, metaDescription: row.meta_description || undefined }
+      row.focus_keyword || row.meta_description || row.related_keywords
+        ? {
+            focusKeyword: row.focus_keyword || undefined,
+            metaDescription: row.meta_description || undefined,
+            relatedKeywords: row.related_keywords
+              ? row.related_keywords.split(";").map((k) => k.trim()).filter(Boolean)
+              : undefined,
+          }
         : undefined,
     publishAtKst: row.publish_at_kst || undefined,
   }));
@@ -63,6 +70,7 @@ interface MetaRow {
   id: number;
   focusKeyword?: string;
   metaDescription?: string;
+  relatedKeywords?: string[];
 }
 
 export function parseBulkMetaRows(filePath: string): MetaRow[] {
@@ -75,6 +83,9 @@ export function parseBulkMetaRows(filePath: string): MetaRow[] {
       id: Number(row.id),
       focusKeyword: row.focus_keyword || undefined,
       metaDescription: row.meta_description || undefined,
+      relatedKeywords: row.related_keywords
+        ? row.related_keywords.split(";").map((k) => k.trim()).filter(Boolean)
+        : undefined,
     }));
   }
   return JSON.parse(readFileSync(filePath, "utf8")) as MetaRow[];

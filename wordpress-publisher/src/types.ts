@@ -1,6 +1,23 @@
 export interface SeoMetaInput {
   focusKeyword?: string;
   metaDescription?: string;
+  /**
+   * 추가 관련 키워드. Yoast Premium의 관련 키프레이즈 필드(_yoast_wpseo_focuskeywords)에
+   * 매핑되고, internalLinks를 직접 주지 않았을 때 관련 글 자동 검색의 검색어로도 쓰인다.
+   */
+  relatedKeywords?: string[];
+}
+
+export interface ImageInput {
+  url: string;
+  /** 접근성을 위해 필수. 비어 있으면 에러를 던진다. */
+  alt: string;
+  caption?: string;
+}
+
+export interface InternalLink {
+  url: string;
+  anchorText: string;
 }
 
 export interface PostInput {
@@ -10,6 +27,12 @@ export interface PostInput {
   tags?: string[];
   status?: "draft" | "publish";
   seo?: SeoMetaInput;
+  /** calculators.ts의 슬러그. 본문 끝에 해당 계산기로 연결되는 CTA를 자동으로 붙인다. */
+  calculator?: string;
+  /** 지정하면 이 목록으로 "관련 글" 섹션을 만든다. 생략하면 seo.relatedKeywords로 자동 검색한다. */
+  internalLinks?: InternalLink[];
+  /** 본문 끝에 자동으로 삽입된다. alt 텍스트가 없는 이미지가 있으면 에러를 던진다. */
+  images?: ImageInput[];
 }
 
 export type PostPatch = Partial<PostInput>;

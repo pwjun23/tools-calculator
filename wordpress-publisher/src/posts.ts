@@ -1,4 +1,5 @@
 import { createTaxonomyResolver } from "./taxonomy.ts";
+import { buildFinalContentHtml } from "./content.ts";
 import { isDryRunResult } from "./types.ts";
 import { kstToUtc, toWpDateGmt } from "./schedule.ts";
 import type { WpClient } from "./client.ts";
@@ -10,11 +11,16 @@ interface WpPostResponse {
   status: string;
 }
 
-function buildSeoMeta(seo?: PostInput["seo"]): Record<string, string> | undefined {
+function buildSeoMeta(seo?: SeoMetaInput): Record<string, string> | undefined {
   if (!seo) return undefined;
   const meta: Record<string, string> = {};
   if (seo.focusKeyword !== undefined) meta._yoast_wpseo_focuskw = seo.focusKeyword;
   if (seo.metaDescription !== undefined) meta._yoast_wpseo_metadesc = seo.metaDescription;
+  if (seo.relatedKeywords !== undefined && seo.relatedKeywords.length > 0) {
+    meta._yoast_wpseo_focuskeywords = JSON.stringify(
+      seo.relatedKeywords.map((keyword) => ({ keyword, score: "0" })),
+    );
+  }
   return meta;
 }
 
@@ -24,6 +30,8 @@ export async function createPost(
   input: PostInput,
   opts: { publish?: boolean } = {},
 ): Promise<PostResult> {
+  const content = await buildFinalContentHtml(client, input);
+
   const taxonomy = createTaxonomyResolver(client);
   const categoryName = input.category ?? config.defaultCategory;
   const tagNames = input.tags ?? config.defaultTags;
@@ -37,7 +45,7 @@ export async function createPost(
 
   const body: Record<string, unknown> = {
     title: input.title,
-    content: input.contentHtml,
+    content,
     status,
   };
   if (categoryId !== undefined) body.categories = [categoryId];
@@ -64,12 +72,31 @@ interface WpPostResponseWithMeta extends WpPostResponse {
 async function buildPatchBody(
   client: WpClient,
   config: ResolvedConfig,
+  id: number,
   patch: PostPatch,
   opts: { publish?: boolean },
 ): Promise<Record<string, unknown>> {
   const body: Record<string, unknown> = {};
   if (patch.title !== undefined) body.title = patch.title;
-  if (patch.contentHtml !== undefined) body.content = patch.contentHtml;
+
+  const hasContentExtras =
+    patch.calculator !== undefined || patch.images !== undefined || patch.internalLinks !== undefined;
+
+  if (patch.contentHtml !== undefined) {
+    body.content = await buildFinalContentHtml(
+      client,
+      {
+        contentHtml: patch.contentHtml,
+        calculator: patch.calculator,
+        images: patch.images,
+        internalLinks: patch.internalLinks,
+        seo: patch.seo,
+      },
+      { excludeId: id },
+    );
+  } else if (hasContentExtras) {
+    throw new Error("calculator/images/internalLinks를 지정하려면 contentHtml도 함께 전달해야 합니다.");
+  }
 
   if (patch.category !== undefined || patch.tags !== undefined) {
     const taxonomy = createTaxonomyResolver(client);
@@ -98,7 +125,7 @@ export async function updatePost(
   patch: PostPatch,
   opts: { publish?: boolean } = {},
 ): Promise<PostResult> {
-  const body = await buildPatchBody(client, config, patch, opts);
+  const body = await buildPatchBody(client, config, id, patch, opts);
   const response = await client.request<WpPostResponse>({
     method: "POST",
     path: `/posts/${id}`,
@@ -131,14 +158,17 @@ export async function addSeoMeta(
   const applied = response.meta ?? {};
   const mismatch =
     (meta.focusKeyword !== undefined && applied._yoast_wpseo_focuskw !== meta.focusKeyword) ||
-    (meta.metaDescription !== undefined && applied._yoast_wpseo_metadesc !== meta.metaDescription);
+    (meta.metaDescription !== undefined && applied._yoast_wpseo_metadesc !== meta.metaDescription) ||
+    (meta.relatedKeywords !== undefined &&
+      meta.relatedKeywords.length > 0 &&
+      !applied._yoast_wpseo_focuskeywords);
 
   return {
     id: response.id,
     url: response.link,
     status: response.status,
     warning: mismatch
-      ? "WordPress가 Yoast 메타를 저장하지 않았습니다. wp-content/mu-plugins/enable-yoast-rest-meta.php를 사이트에 설치했는지 확인하세요."
+      ? "WordPress가 Yoast 메타를 저장하지 않았습니다. wp-content/mu-plugins/enable-yoast-rest-meta.php를 사이트에 설치했는지 확인하세요 (relatedKeywords는 Yoast Premium 전용 필드입니다)."
       : undefined,
   };
 }
@@ -152,6 +182,8 @@ export async function schedulePost(
   const utc = kstToUtc(input.publishAtKst, opts.now);
   const { publishAtKst, ...rest } = input;
 
+  const content = await buildFinalContentHtml(client, rest);
+
   const taxonomy = createTaxonomyResolver(client);
   const categoryName = rest.category ?? config.defaultCategory;
   const tagNames = rest.tags ?? config.defaultTags;
@@ -162,7 +194,7 @@ export async function schedulePost(
 
   const body: Record<string, unknown> = {
     title: rest.title,
-    content: rest.contentHtml,
+    content,
     status: "future",
     date_gmt: toWpDateGmt(utc),
   };

@@ -49,6 +49,25 @@ describe("parseBulkCreateRows", () => {
       },
     ]);
   });
+
+  it("CSV의 calculator/related_keywords 컬럼을 읽는다", () => {
+    const csv = join(dir, "posts2.csv");
+    writeFileSync(
+      csv,
+      "title,content,calculator,related_keywords\n" +
+        '"글2","<p>2</p>",salary,연봉;실수령액\n',
+      "utf8",
+    );
+
+    expect(parseBulkCreateRows(csv)).toEqual([
+      {
+        title: "글2",
+        contentHtml: "<p>2</p>",
+        calculator: "salary",
+        seo: { focusKeyword: undefined, metaDescription: undefined, relatedKeywords: ["연봉", "실수령액"] },
+      },
+    ]);
+  });
 });
 
 describe("bulkCreate", () => {

@@ -6,7 +6,9 @@
  */
 
 add_action('rest_api_init', function () {
-    $fields = ['_yoast_wpseo_metadesc', '_yoast_wpseo_focuskw'];
+    // _yoast_wpseo_focuskeywords는 Yoast Premium의 추가 키프레이즈 필드입니다.
+    // Yoast Free에서는 저장은 되지만 Yoast UI가 읽어 쓰지는 않습니다.
+    $fields = ['_yoast_wpseo_metadesc', '_yoast_wpseo_focuskw', '_yoast_wpseo_focuskeywords'];
 
     foreach ($fields as $field) {
         register_post_meta('post', $field, [

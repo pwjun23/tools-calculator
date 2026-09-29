@@ -58,6 +58,10 @@ WordPress 코어 REST API는 기본적으로 Yoast SEO의 포커스 키워드/�
    동일한 안내가 `⚠` 경고로 콘솔에 출력되고, 실행 로그(jsonl)에도 `warning` 필드로 함께
    기록됩니다.
 
+   `relatedKeywords`(§5-1)는 Yoast Premium의 추가 키프레이즈 필드
+   (`_yoast_wpseo_focuskeywords`)에 씁니다. mu-plugin이 설치돼 있으면 Yoast Free에서도 값 자체는
+   저장되지만, Yoast Free의 편집 화면/점수 계산은 이 필드를 읽지 않습니다.
+
 ## 4. 명령어 사용법
 
 모든 명령은 `npm run cli --` 뒤에 `<command> --flag value ...` 형태로 실행합니다
@@ -79,8 +83,13 @@ npm run cli -- create --title "글 제목" --content-file ./post.html --publish
 | `--tags` | 태그 이름을 **쉼표(,)**로 구분해 전달 (생략 시 `default_tags`) |
 | `--focus-keyword` | Yoast 포커스 키워드 (선택) |
 | `--meta-description` | Yoast 메타 디스크립션 (선택) |
+| `--related-keywords` | 추가 관련 키워드, **쉼표(,)**로 구분 (선택). §5 참고 |
+| `--calculator` | 계산기 슬러그 (선택). 본문 끝에 해당 계산기 CTA를 자동으로 붙입니다. §5 참고 |
 | `--dry-run` | 실제 요청을 보내지 않고 `{ id: 0, url: "(dry-run)", status }` 형태의 미리보기 결과만 출력 |
 | `--publish` | 즉시 발행. 생략하면 항상 `draft`로 생성됩니다 |
+
+`images`/`internalLinks`(명시적 목록)는 구조가 있는 배열이라 CLI 플래그로는 못 받습니다.
+JSON 입력(`batch-create` 또는 아래 §5)을 쓰세요.
 
 ### update — 기존 글 수정
 
@@ -114,6 +123,7 @@ npm run cli -- add-seo --id 123 --focus-keyword 전세 --meta-description "전�
 | `--id` | 대상 글 ID (필수) |
 | `--focus-keyword` | 포커스 키워드 (선택) |
 | `--meta-description` | 메타 디스크립션 (선택) |
+| `--related-keywords` | 추가 관련 키워드, 쉼표로 구분 (선택) |
 | `--dry-run` | 실제 요청을 보내지 않고 미리보기만 출력 (다른 모든 명령과 동일하게 지원) |
 
 WordPress가 응답에서 값을 실제로 반영하지 않았으면(mu-plugin 미설치 등) 콘솔에 `⚠` 경고가
@@ -127,7 +137,7 @@ npm run cli -- schedule --title "글 제목" --content-file ./post.html --publis
 
 | 플래그 | 설명 |
 | --- | --- |
-| `--title`, `--content-file`/`--content`, `--category`, `--tags` | create와 동일 |
+| `--title`, `--content-file`/`--content`, `--category`, `--tags`, `--focus-keyword`, `--meta-description`, `--related-keywords`, `--calculator` | create와 동일 |
 | `--publish-at` | 발행 시각. **한국시간(KST) 기준** `"YYYY-MM-DD HH:mm"` 형식 (예: `"2026-09-28 09:00"`). 과거 시각을 넣으면 에러가 나고 요청을 보내지 않습니다 |
 | `--dry-run` | 실제 요청을 보내지 않고 미리보기만 출력 |
 
@@ -181,13 +191,18 @@ npm run cli -- batch-update-meta --file ./meta.json
 | `tags` | X | 태그, **세미콜론(;)**으로 구분 (예: `계산기;금융`) |
 | `focus_keyword` | X | Yoast 포커스 키워드 |
 | `meta_description` | X | Yoast 메타 디스크립션 |
+| `related_keywords` | X | 추가 관련 키워드, **세미콜론(;)**으로 구분. §5-1 참고 |
+| `calculator` | X | 계산기 슬러그. §5-1 참고 |
 | `publish_at_kst` | X | 있으면 해당 행을 예약 발행으로 처리 (KST `"YYYY-MM-DD HH:mm"`) |
+
+`images`/`internalLinks`(명시적 목록)는 배열-of-객체라 CSV로는 표현할 수 없습니다. 이 두
+필드가 필요하면 JSON 형식을 쓰세요.
 
 예시:
 
 ```csv
-title,content_file,category,tags,focus_keyword,meta_description,publish_at_kst
-"전세 대출 계산기",post1.html,부동산,계산기;금융,전세대출,전세 대출 이자 계산 방법,
+title,content_file,category,tags,focus_keyword,meta_description,related_keywords,calculator,publish_at_kst
+"전세 대출 계산기",post1.html,부동산,계산기;금융,전세대출,전세 대출 이자 계산 방법,전세;대출;금리,jeonse-vs-loan,
 ```
 
 **JSON** (camelCase, `PostInput` 형태를 그대로 배열로 작성; 태그는 배열, SEO는 객체):
@@ -199,13 +214,40 @@ title,content_file,category,tags,focus_keyword,meta_description,publish_at_kst
     "contentHtml": "<p>본문 HTML</p>",
     "category": "부동산",
     "tags": ["계산기", "금융"],
-    "seo": { "focusKeyword": "전세대출", "metaDescription": "전세 대출 이자 계산 방법" },
+    "seo": {
+      "focusKeyword": "전세대출",
+      "metaDescription": "전세 대출 이자 계산 방법",
+      "relatedKeywords": ["전세", "대출", "금리"]
+    },
+    "calculator": "jeonse-vs-loan",
+    "images": [
+      { "url": "https://molespapa.com/wp-content/uploads/chart.png", "alt": "전세 대출 비교 그래프", "caption": "10년 거주 기준 비교" }
+    ],
+    "internalLinks": [
+      { "url": "https://molespapa.com/?p=45", "anchorText": "전세금 이자, 얼마나 될까?" }
+    ],
     "publishAtKst": "2026-09-28 09:00"
   }
 ]
 ```
 
 `publishAtKst`가 없는 항목은 `create`로, 있는 항목은 `schedule`로 처리됩니다.
+
+### 5-1. 본문 자동 보강 필드 (calculator / images / internalLinks / relatedKeywords)
+
+`createPost`/`schedulePost`(그리고 `contentHtml`을 함께 지정한 `update`)는 아래 필드가 있으면
+`contentHtml` **뒤에 자동으로 HTML 블록을 이어붙입니다.** 직접 `<img>`나 `<a>` 태그를 쓸 필요가
+없습니다.
+
+| 필드 | 타입 | 동작 |
+| --- | --- | --- |
+| `calculator` | `string` | `src/calculators.ts`에 정의된 슬러그(`salary`/`freelancer`/`car`/`jeonse`/`jeonse-vs-loan`)여야 합니다. 본문 끝에 해당 계산기로 연결되는 CTA 문단을 자동으로 붙입니다. 모르는 슬러그면 에러를 던집니다. |
+| `images` | `{ url, alt, caption? }[]` | 각 이미지를 `<img>`(caption이 있으면 `<figure>`)로 변환해 본문 끝에 붙입니다. **`alt`가 비어 있으면 요청을 보내기 전에 에러를 던집니다** — 접근성/SEO를 위해 필수입니다. |
+| `internalLinks` | `{ url, anchorText }[]` | 이 목록으로 "함께 보면 좋은 글" 섹션을 만듭니다. **직접 지정하면 아래 자동 검색은 하지 않습니다.** |
+| `seo.relatedKeywords` | `string[]` | Yoast 메타(`_yoast_wpseo_focuskeywords`, Yoast Premium 필드)에 저장됩니다. **`internalLinks`를 지정하지 않았다면** 이 키워드로 WordPress 기존 글을 검색해(`/posts?search=`) 관련 글 링크를 자동으로 만듭니다(최대 3개, 자기 자신·중복 제외). `--dry-run`에서는 실제 검색을 하지 않습니다. |
+
+`update`에서 이 네 필드 중 하나라도 주려면 `contentHtml`도 함께 지정해야 합니다(어떤 본문
+뒤에 이어붙일지 알 수 없기 때문입니다) — 없으면 에러를 던집니다.
 
 ### batch-update-meta 입력
 
@@ -216,16 +258,17 @@ title,content_file,category,tags,focus_keyword,meta_description,publish_at_kst
 | `id` | O | 글 ID |
 | `focus_keyword` | X | Yoast 포커스 키워드 |
 | `meta_description` | X | Yoast 메타 디스크립션 |
+| `related_keywords` | X | 추가 관련 키워드, 세미콜론으로 구분 |
 
 ```csv
-id,focus_keyword,meta_description
-123,전세,전세 관련 설명
+id,focus_keyword,meta_description,related_keywords
+123,전세,전세 관련 설명,전세;대출
 ```
 
 **JSON** (camelCase):
 
 ```json
-[{ "id": 123, "focusKeyword": "전세", "metaDescription": "전세 관련 설명" }]
+[{ "id": 123, "focusKeyword": "전세", "metaDescription": "전세 관련 설명", "relatedKeywords": ["전세", "대출"] }]
 ```
 
 ## 6. dry-run / publish / draft 기본 규칙

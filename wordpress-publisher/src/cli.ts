@@ -45,9 +45,11 @@ async function main() {
         contentHtml: String(flags["content-file"] ? readFileSync(String(flags["content-file"]), "utf8") : flags.content ?? ""),
         category: typeof flags.category === "string" ? flags.category : undefined,
         tags: splitTags(flags.tags),
-        seo: flags["focus-keyword"] || flags["meta-description"] ? {
+        calculator: typeof flags.calculator === "string" ? flags.calculator : undefined,
+        seo: flags["focus-keyword"] || flags["meta-description"] || flags["related-keywords"] ? {
           focusKeyword: typeof flags["focus-keyword"] === "string" ? flags["focus-keyword"] : undefined,
           metaDescription: typeof flags["meta-description"] === "string" ? flags["meta-description"] : undefined,
+          relatedKeywords: splitTags(flags["related-keywords"]),
         } : undefined,
       };
       const result = await createPost(client, config, input, { publish });
@@ -69,6 +71,7 @@ async function main() {
       const result = await addSeoMeta(client, config, id, {
         focusKeyword: typeof flags["focus-keyword"] === "string" ? flags["focus-keyword"] : undefined,
         metaDescription: typeof flags["meta-description"] === "string" ? flags["meta-description"] : undefined,
+        relatedKeywords: splitTags(flags["related-keywords"]),
       });
       logger.log({ action: "add-seo", input: { id }, status: "success", postId: result.id, url: result.url });
       console.log(result);
@@ -80,6 +83,12 @@ async function main() {
         contentHtml: String(flags["content-file"] ? readFileSync(String(flags["content-file"]), "utf8") : flags.content ?? ""),
         category: typeof flags.category === "string" ? flags.category : undefined,
         tags: splitTags(flags.tags),
+        calculator: typeof flags.calculator === "string" ? flags.calculator : undefined,
+        seo: flags["focus-keyword"] || flags["meta-description"] || flags["related-keywords"] ? {
+          focusKeyword: typeof flags["focus-keyword"] === "string" ? flags["focus-keyword"] : undefined,
+          metaDescription: typeof flags["meta-description"] === "string" ? flags["meta-description"] : undefined,
+          relatedKeywords: splitTags(flags["related-keywords"]),
+        } : undefined,
         publishAtKst: String(flags["publish-at"] ?? ""),
       };
       const result = await schedulePost(client, config, input);
