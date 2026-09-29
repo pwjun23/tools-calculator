@@ -95,22 +95,29 @@ JSON 입력(`batch-create` 또는 아래 §5)을 쓰세요.
 
 ```bash
 npm run cli -- update --id 123 --title "새 제목"
+npm run cli -- update --id 123 --content-file ./post.html --calculator jeonse-vs-loan
 ```
 
 | 플래그 | 설명 |
 | --- | --- |
 | `--id` | 수정할 글의 ID (필수) |
 | `--title` | 새 제목 (선택) |
+| `--content-file` / `--content` | 새 본문 (선택). 둘 다 없으면 기존 본문을 그대로 둡니다 |
 | `--category` | 새 카테고리 (선택) |
 | `--tags` | 새 태그, 쉼표로 구분 (선택) |
+| `--focus-keyword` / `--meta-description` / `--related-keywords` | SEO 메타 (선택). 본문 여부와 무관하게 바로 적용됩니다 |
+| `--calculator` | 계산기 슬러그 (선택). §5-1 참고 |
 | `--dry-run` | 실제 요청을 보내지 않고 미리보기만 출력 |
 
 주의:
-- 현재 `update` 명령은 본문(`--content`/`--content-file`)이나 SEO 메타 플래그를 CLI에서
-  받지 않습니다(내부 `updatePost`는 지원하지만 `cli.ts`가 아직 그 플래그들을 연결하지
-  않았습니다). SEO 메타를 바꾸려면 `add-seo` 명령을 쓰세요.
-- `--publish` 플래그를 줄 수는 있지만, `update`는 title/category/tags만 바꾸고 발행 상태
-  (`status`)는 건드리지 않으므로 현재는 눈에 보이는 효과가 없습니다.
+- `--calculator`는 **본문 뒤에 이어붙일 대상**이 필요하므로, `--content-file`/`--content`
+  없이 단독으로 주면 에러를 던집니다(§5-1의 `images`/`internalLinks`도 JSON으로 직접
+  `updatePost`를 호출할 때 같은 제약이 있습니다). `images`/`internalLinks`는 구조가 있는
+  배열이라 CLI 플래그로는 못 받습니다 — 스크립트에서 `updatePost()`를 직접 호출하세요.
+- SEO 메타만 바꾸고 싶으면 `--content-file`/`--content` 없이 `--focus-keyword` 등만 줘도
+  되고, 기존처럼 `add-seo` 명령을 써도 됩니다.
+- `--publish` 플래그를 줄 수는 있지만, `update`는 title/category/tags/content/seo만 바꾸고
+  발행 상태(`status`)는 건드리지 않으므로 현재는 눈에 보이는 효과가 없습니다.
 
 ### add-seo — Yoast SEO 메타 채우기
 
