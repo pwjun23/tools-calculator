@@ -218,7 +218,7 @@ title,content_file,category,tags,focus_keyword,meta_description,related_keywords
 [
   {
     "title": "전세 대출 계산기",
-    "contentHtml": "<p>본문 HTML</p>",
+    "contentHtml": "<p>도입부</p>{{image}}<p>본문이 이어집니다</p>",
     "category": "부동산",
     "tags": ["계산기", "금융"],
     "seo": {
@@ -249,7 +249,7 @@ title,content_file,category,tags,focus_keyword,meta_description,related_keywords
 | 필드 | 타입 | 동작 |
 | --- | --- | --- |
 | `calculator` | `string` | `src/calculators.ts`에 정의된 슬러그(`salary`/`freelancer`/`car`/`jeonse`/`jeonse-vs-loan`)여야 합니다. 본문 끝에 해당 계산기로 연결되는 CTA 문단을 자동으로 붙입니다. 모르는 슬러그면 에러를 던집니다. |
-| `images` | `{ url, alt, caption? }[]` | 각 이미지를 `<img>`(caption이 있으면 `<figure>`)로 변환해 본문 끝에 붙입니다. **`alt`가 비어 있으면 요청을 보내기 전에 에러를 던집니다** — 접근성/SEO를 위해 필수입니다. |
+| `images` | `{ url, alt, caption? }[]` | 각 이미지를 `<img>`(caption이 있으면 `<figure>`)로 변환합니다. `contentHtml`에 `{{image}}` 마커가 있으면 그 자리에 순서대로 끼워넣고, 마커가 없거나 이미지가 더 많으면 남는 이미지는 본문 끝에 붙입니다. 마커가 이미지보다 많으면 에러를 던집니다. **`alt`가 비어 있으면 요청을 보내기 전에 에러를 던집니다** — 접근성/SEO를 위해 필수입니다. |
 | `internalLinks` | `{ url, anchorText }[]` | 이 목록으로 "함께 보면 좋은 글" 섹션을 만듭니다. **직접 지정하면 아래 자동 검색은 하지 않습니다.** |
 | `seo.relatedKeywords` | `string[]` | Yoast 메타(`_yoast_wpseo_focuskeywords`, Yoast Premium 필드)에 저장됩니다. **`internalLinks`를 지정하지 않았다면** 이 키워드로 WordPress 기존 글을 검색해(`/posts?search=`) 관련 글 링크를 자동으로 만듭니다(최대 3개, 자기 자신·중복 제외). `--dry-run`에서는 실제 검색을 하지 않습니다. |
 

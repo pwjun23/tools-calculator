@@ -47,6 +47,51 @@ describe("buildFinalContentHtml", () => {
     ).rejects.toThrow(/alt/);
   });
 
+  it("{{image}} 마커가 있으면 그 자리에 이미지를 끼워넣는다", async () => {
+    const html = await buildFinalContentHtml(dryRunClient, {
+      contentHtml: "<p>첫 문단</p>{{image}}<p>둘째 문단</p>",
+      images: [{ url: "https://x.com/a.png", alt: "설명" }],
+    });
+    expect(html).toBe(
+      '<p>첫 문단</p><img src="https://x.com/a.png" alt="설명" loading="lazy" /><p>둘째 문단</p>',
+    );
+  });
+
+  it("마커가 여러 개면 순서대로 채운다", async () => {
+    const html = await buildFinalContentHtml(dryRunClient, {
+      contentHtml: "A{{image}}B{{image}}C",
+      images: [
+        { url: "https://x.com/1.png", alt: "1" },
+        { url: "https://x.com/2.png", alt: "2" },
+      ],
+    });
+    expect(html).toBe(
+      'A<img src="https://x.com/1.png" alt="1" loading="lazy" />B<img src="https://x.com/2.png" alt="2" loading="lazy" />C',
+    );
+  });
+
+  it("이미지가 마커보다 많으면 남는 이미지를 본문 끝에 붙인다", async () => {
+    const html = await buildFinalContentHtml(dryRunClient, {
+      contentHtml: "A{{image}}B",
+      images: [
+        { url: "https://x.com/1.png", alt: "1" },
+        { url: "https://x.com/2.png", alt: "2" },
+      ],
+    });
+    expect(html).toBe(
+      'A<img src="https://x.com/1.png" alt="1" loading="lazy" />B\n\n<img src="https://x.com/2.png" alt="2" loading="lazy" />',
+    );
+  });
+
+  it("마커가 이미지보다 많으면 에러를 던진다", async () => {
+    await expect(
+      buildFinalContentHtml(dryRunClient, {
+        contentHtml: "{{image}}{{image}}",
+        images: [{ url: "https://x.com/1.png", alt: "1" }],
+      }),
+    ).rejects.toThrow(/마커\(2개\).*images 배열\(1개\)/);
+  });
+
   it("calculator 슬러그가 있으면 해당 계산기 링크를 CTA로 붙인다", async () => {
     const html = await buildFinalContentHtml(dryRunClient, {
       contentHtml: "<p>본문</p>",

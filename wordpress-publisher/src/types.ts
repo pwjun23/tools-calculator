@@ -31,7 +31,10 @@ export interface PostInput {
   calculator?: string;
   /** 지정하면 이 목록으로 "관련 글" 섹션을 만든다. 생략하면 seo.relatedKeywords로 자동 검색한다. */
   internalLinks?: InternalLink[];
-  /** 본문 끝에 자동으로 삽입된다. alt 텍스트가 없는 이미지가 있으면 에러를 던진다. */
+  /**
+   * contentHtml에 있는 {{image}} 마커 자리에 순서대로 삽입되고, 마커가 없거나 이미지가 더
+   * 많으면 남는 이미지는 본문 끝에 붙는다. alt 텍스트가 없는 이미지가 있으면 에러를 던진다.
+   */
   images?: ImageInput[];
 }
 
