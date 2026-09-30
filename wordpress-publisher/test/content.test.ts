@@ -107,6 +107,22 @@ describe("buildFinalContentHtml", () => {
     ).rejects.toThrow(/없는거/);
   });
 
+  it("{{calculator}} 마커가 있으면 그 자리에 CTA를 끼워넣고 끝에는 중복해서 붙이지 않는다", async () => {
+    const html = await buildFinalContentHtml(dryRunClient, {
+      contentHtml: "<p>앞 문단</p>{{calculator}}<p>뒷 문단</p>",
+      calculator: "salary",
+    });
+    expect(html).toBe(
+      '<p>앞 문단</p><p><strong>연봉 계산기</strong>로 직접 계산해보세요 → <a href="https://tools.molespapa.com/salary" target="_blank" rel="noopener">https://tools.molespapa.com/salary</a></p><p>뒷 문단</p>',
+    );
+  });
+
+  it("{{calculator}} 마커는 있는데 calculator 필드가 없으면 에러를 던진다", async () => {
+    await expect(
+      buildFinalContentHtml(dryRunClient, { contentHtml: "<p>{{calculator}}</p>" }),
+    ).rejects.toThrow(/\{\{calculator\}\}/);
+  });
+
   it("internalLinks를 직접 주면 그 목록으로 관련 글 섹션을 만들고 검색하지 않는다", async () => {
     const request = vi.fn();
     const client: WpClient = { dryRun: false, request: request as never };

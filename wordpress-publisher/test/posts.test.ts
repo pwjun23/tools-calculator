@@ -141,6 +141,20 @@ describe("createPost", () => {
     expect(body.content).toContain("https://tools.molespapa.com/salary");
   });
 
+  it("slug를 지정하면 body에 그대로 실린다", async () => {
+    const client = clientReturning([
+      [{ id: 9, name: "부동산" }],
+      [{ id: 1, name: "계산기" }],
+      [{ id: 2, name: "금융" }],
+      { id: 1, link: "u", status: "draft" },
+    ]);
+
+    await createPost(client, config, { title: "t", contentHtml: "c", slug: "내-슬러그" });
+
+    const body = (client.request as ReturnType<typeof vi.fn>).mock.calls[3][0].body;
+    expect(body.slug).toBe("내-슬러그");
+  });
+
   it("alt 텍스트가 없는 이미지가 있으면 카테고리/태그 조회 없이 바로 에러를 던진다", async () => {
     const client = clientReturning([]);
 

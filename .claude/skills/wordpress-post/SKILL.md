@@ -31,9 +31,12 @@ description: Draft a blog post for tools.molespapa.com (WordPress) in this chat 
   붙는다. 마커가 이미지보다 많으면 에러이므로 마커 개수 ≤ 이미지 개수를 지킨다.
 - **계산기 연동** — 글 내용이 이 사이트의 계산기(연봉/프리랜서/자동차/전세이자/전세vs대출)와
   관련 있으면 `calculator` 슬러그(`salary`/`freelancer`/`car`/`jeonse`/`jeonse-vs-loan`, 앞에
-  `/`를 붙여 `/jeonse-vs-loan`처럼 써도 된다)를 넣을지 물어본다. 넣으면 본문 끝에 해당
-  계산기로 연결되는 CTA가 자동으로 붙는다. `/calculator/jeonse-vs-loan`처럼 다른 경로 조각이
-  섞이면 여전히 에러이니, 사이트 실제 주소(`tools.molespapa.com/<슬러그>`)와 똑같이 쓴다.
+  `/`를 붙여 `/jeonse-vs-loan`처럼 써도 된다)를 넣을지 물어본다. 본문의 특정 위치(예: "아래
+  계산기로 비교해보세요" 바로 뒤)에 넣고 싶으면 그 자리에 `{{calculator}}` 마커를 쓴다 — 없으면
+  본문 끝에 자동으로 붙는다. `/calculator/jeonse-vs-loan`처럼 다른 경로 조각이 섞이면 여전히
+  에러이니, 사이트 실제 주소(`tools.molespapa.com/<슬러그>`)와 똑같이 쓴다.
+- **슬러그** — 사용자가 한글 SEO 슬러그를 원하면 `slug` 필드로 지정한다(생략하면 워드프레스가
+  제목에서 자동으로 만든다).
 - **관련 글** — 명시적으로 링크하고 싶은 글이 있으면 `internalLinks`로 직접 준다. 없지만
   주제와 관련된 검색어가 있으면 `seo.relatedKeywords`만 채워도 된다 — 실제 발행 시 그
   키워드로 기존 워드프레스 글을 검색해 "함께 보면 좋은 글" 섹션을 자동으로 채운다(단
@@ -51,6 +54,24 @@ description: Draft a blog post for tools.molespapa.com (WordPress) in this chat 
 각 필드의 정확한 스키마와 타입은 `wordpress-publisher/README.md`의 5절(CSV/JSON 스키마)과
 5-1절(calculator/images/internalLinks/relatedKeywords 자동 보강 규칙)에 전부 정리돼 있다 —
 헷갈리면 그 문서를 다시 읽는다.
+
+## claude.ai에서 초안을 받았을 때
+
+사용자가 다른 claude.ai 채팅에서 쓴 초안(JSON이든 텍스트든)을 붙여넣는 경우가 많다. 그 초안은
+이 CLI의 실제 스키마를 모르고 쓰였을 수 있으므로, 그대로 실행하지 말고 아래를 먼저 확인한다.
+
+- **`id`/`action: "UPDATE"` 같은 필드가 있으면** — 진짜 molespapa.com에 올라가 있는 글의
+  워드프레스 글 ID인지 반드시 확인한다. claude.ai 쪽에서 임의로 붙인 초안 번호(예: `id: 1`)일
+  수 있다 — 확실하지 않으면 새 글(`create`/`schedule`)인지 진짜 수정(`update --id`)인지
+  사용자에게 직접 물어본다.
+- **이미지가 실제 URL이 아니라 주제/설명만 있으면**(`image_subjects: ["부동산 비교", ...]`
+  같은 형태) — 이 CLI는 이미지를 생성하거나 찾아주지 않는다. 실제 이미지 URL과 alt 텍스트를
+  요청하거나, 없으면 이미지 없이 먼저 올릴지 물어본다.
+- **본문에 `{{image}}`/`{{calculator}}`가 아닌 다른 형태의 자리표시자가 있으면**(예: 중괄호
+  하나짜리 `{calculator_id}`, `[IMAGE_HERE]` 같은 것) — 그대로 두면 그 글자가 실제 발행물에
+  그대로 노출된다. 의도를 파악해서 이 CLI가 실제로 지원하는 `{{image}}`/`{{calculator}}` 마커로
+  바꾸거나, 마커가 지원하지 않는 위치 지정이면 사용자에게 알리고 대안(본문 끝에 붙이기, 또는
+  마커를 새로 지원하도록 코드를 고치는 것)을 상의한다.
 
 ## 실행 절차
 

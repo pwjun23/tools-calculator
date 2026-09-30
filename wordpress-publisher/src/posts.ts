@@ -48,6 +48,7 @@ export async function createPost(
     content,
     status,
   };
+  if (input.slug !== undefined) body.slug = input.slug;
   if (categoryId !== undefined) body.categories = [categoryId];
   if (tagIds.length > 0) body.tags = tagIds;
   const meta = buildSeoMeta(input.seo);
@@ -78,6 +79,7 @@ async function buildPatchBody(
 ): Promise<Record<string, unknown>> {
   const body: Record<string, unknown> = {};
   if (patch.title !== undefined) body.title = patch.title;
+  if (patch.slug !== undefined) body.slug = patch.slug;
 
   const hasContentExtras =
     patch.calculator !== undefined || patch.images !== undefined || patch.internalLinks !== undefined;
@@ -198,6 +200,7 @@ export async function schedulePost(
     status: "future",
     date_gmt: toWpDateGmt(utc),
   };
+  if (rest.slug !== undefined) body.slug = rest.slug;
   if (categoryId !== undefined) body.categories = [categoryId];
   if (tagIds.length > 0) body.tags = tagIds;
   const meta = buildSeoMeta(rest.seo);

@@ -19,6 +19,7 @@ function parseCsvRows(filePath: string): BulkRow[] {
     contentHtml: row.content_file
       ? readFileSync(join(baseDir, row.content_file), "utf8")
       : row.content ?? "",
+    slug: row.slug || undefined,
     category: row.category || undefined,
     tags: row.tags ? row.tags.split(";").map((t) => t.trim()).filter(Boolean) : undefined,
     calculator: row.calculator || undefined,

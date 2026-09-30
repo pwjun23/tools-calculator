@@ -43,6 +43,7 @@ async function main() {
       const input: PostInput = {
         title: String(flags.title ?? ""),
         contentHtml: String(flags["content-file"] ? readFileSync(String(flags["content-file"]), "utf8") : flags.content ?? ""),
+        slug: typeof flags.slug === "string" ? flags.slug : undefined,
         category: typeof flags.category === "string" ? flags.category : undefined,
         tags: splitTags(flags.tags),
         calculator: typeof flags.calculator === "string" ? flags.calculator : undefined,
@@ -66,6 +67,7 @@ async function main() {
       const result = await updatePost(client, config, id, {
         title: typeof flags.title === "string" ? flags.title : undefined,
         contentHtml,
+        slug: typeof flags.slug === "string" ? flags.slug : undefined,
         category: typeof flags.category === "string" ? flags.category : undefined,
         tags: splitTags(flags.tags),
         calculator: typeof flags.calculator === "string" ? flags.calculator : undefined,
@@ -93,6 +95,7 @@ async function main() {
       const input = {
         title: String(flags.title ?? ""),
         contentHtml: String(flags["content-file"] ? readFileSync(String(flags["content-file"]), "utf8") : flags.content ?? ""),
+        slug: typeof flags.slug === "string" ? flags.slug : undefined,
         category: typeof flags.category === "string" ? flags.category : undefined,
         tags: splitTags(flags.tags),
         calculator: typeof flags.calculator === "string" ? flags.calculator : undefined,

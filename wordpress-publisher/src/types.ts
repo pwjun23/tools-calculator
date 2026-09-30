@@ -23,11 +23,16 @@ export interface InternalLink {
 export interface PostInput {
   title: string;
   contentHtml: string;
+  /** 워드프레스 글 주소(퍼머링크)에 쓸 슬러그. 생략하면 워드프레스가 제목에서 자동으로 만든다. */
+  slug?: string;
   category?: string;
   tags?: string[];
   status?: "draft" | "publish";
   seo?: SeoMetaInput;
-  /** calculators.ts의 슬러그. 본문 끝에 해당 계산기로 연결되는 CTA를 자동으로 붙인다. */
+  /**
+   * calculators.ts의 슬러그. contentHtml에 {{calculator}} 마커가 있으면 그 자리에,
+   * 없으면 본문 끝에 해당 계산기로 연결되는 CTA를 자동으로 붙인다.
+   */
   calculator?: string;
   /** 지정하면 이 목록으로 "관련 글" 섹션을 만든다. 생략하면 seo.relatedKeywords로 자동 검색한다. */
   internalLinks?: InternalLink[];
