@@ -76,6 +76,7 @@ async function main() {
           metaDescription: typeof flags["meta-description"] === "string" ? flags["meta-description"] : undefined,
           relatedKeywords: splitTags(flags["related-keywords"]),
         } : undefined,
+        publishAtKst: typeof flags["publish-at"] === "string" ? flags["publish-at"] : undefined,
       }, { publish });
       logger.log({ action: "update", input: { id, flags }, status: "success", postId: result.id, url: result.url });
       console.log(result);

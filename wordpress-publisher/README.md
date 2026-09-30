@@ -109,6 +109,7 @@ npm run cli -- update --id 123 --content-file ./post.html --calculator jeonse-vs
 | `--tags` | 새 태그, 쉼표로 구분 (선택) |
 | `--focus-keyword` / `--meta-description` / `--related-keywords` | SEO 메타 (선택). 본문 여부와 무관하게 바로 적용됩니다 |
 | `--calculator` | 계산기 슬러그 (선택). §5-1 참고 |
+| `--publish-at` | 이 글을 이 시각(KST `"YYYY-MM-DD HH:mm"`)에 (재)발행되도록 예약합니다(선택). 지정하면 상태를 `future`로 바꿉니다. 과거 시각이면 에러가 나고 요청을 보내지 않습니다. |
 | `--dry-run` | 실제 요청을 보내지 않고 미리보기만 출력 |
 
 주의:
@@ -119,7 +120,11 @@ npm run cli -- update --id 123 --content-file ./post.html --calculator jeonse-vs
 - SEO 메타만 바꾸고 싶으면 `--content-file`/`--content` 없이 `--focus-keyword` 등만 줘도
   되고, 기존처럼 `add-seo` 명령을 써도 됩니다.
 - `--publish` 플래그를 줄 수는 있지만, `update`는 title/category/tags/content/seo만 바꾸고
-  발행 상태(`status`)는 건드리지 않으므로 현재는 눈에 보이는 효과가 없습니다.
+  발행 상태(`status`)는 건드리지 않으므로 현재는 눈에 보이는 효과가 없습니다. 상태를 바꾸려면
+  `--publish-at`을 쓰세요(즉시 발행은 아직 지원하지 않으며, 예약만 가능합니다).
+- `--publish-at`은 내부적으로 `status: publish`를 의미하지 않으므로, 프로그램에서
+  `updatePost()`를 직접 호출할 때 `patch.status`와 `publishAtKst`를 동시에 지정하면
+  에러를 던집니다 — 둘 중 하나만 쓰세요.
 
 ### add-seo — Yoast SEO 메타 채우기
 

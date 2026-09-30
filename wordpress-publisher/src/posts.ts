@@ -75,7 +75,7 @@ async function buildPatchBody(
   config: ResolvedConfig,
   id: number,
   patch: PostPatch,
-  opts: { publish?: boolean },
+  opts: { publish?: boolean; now?: Date },
 ): Promise<Record<string, unknown>> {
   const body: Record<string, unknown> = {};
   if (patch.title !== undefined) body.title = patch.title;
@@ -110,7 +110,14 @@ async function buildPatchBody(
     }
   }
 
-  if (patch.status !== undefined) {
+  if (patch.publishAtKst !== undefined) {
+    if (patch.status !== undefined) {
+      throw new Error("publishAtKst와 status를 동시에 지정할 수 없습니다.");
+    }
+    const utc = kstToUtc(patch.publishAtKst, opts.now);
+    body.status = "future";
+    body.date_gmt = toWpDateGmt(utc);
+  } else if (patch.status !== undefined) {
     body.status = opts.publish ? patch.status : "draft";
   }
 
@@ -125,7 +132,7 @@ export async function updatePost(
   config: ResolvedConfig,
   id: number,
   patch: PostPatch,
-  opts: { publish?: boolean } = {},
+  opts: { publish?: boolean; now?: Date } = {},
 ): Promise<PostResult> {
   const body = await buildPatchBody(client, config, id, patch, opts);
   const response = await client.request<WpPostResponse>({

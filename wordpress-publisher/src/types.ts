@@ -43,7 +43,13 @@ export interface PostInput {
   images?: ImageInput[];
 }
 
-export type PostPatch = Partial<PostInput>;
+export type PostPatch = Partial<PostInput> & {
+  /**
+   * 기존 글을 이 시각(KST, "YYYY-MM-DD HH:mm")에 (재)발행되도록 예약한다.
+   * 지정하면 status를 "future"로 바꾸고 date_gmt를 함께 보낸다 — status와 동시에 지정할 수 없다.
+   */
+  publishAtKst?: string;
+};
 
 export interface ScheduleInput extends PostInput {
   publishAtKst: string;

@@ -240,6 +240,42 @@ describe("updatePost", () => {
     const body = (client.request as ReturnType<typeof vi.fn>).mock.calls[0][0].body;
     expect(body.content).toContain("https://tools.molespapa.com/salary");
   });
+
+  it("publishAtKst를 주면 status: future와 date_gmt를 담아 PATCH한다", async () => {
+    const client = clientReturning([{ id: 5, link: "u", status: "future", meta: {} }]);
+    const now = new Date("2026-09-01T00:00:00.000Z");
+
+    await updatePost(
+      client,
+      config,
+      5,
+      { title: "새 제목", publishAtKst: "2026-09-28 09:00" },
+      { now },
+    );
+
+    const body = (client.request as ReturnType<typeof vi.fn>).mock.calls[0][0].body;
+    expect(body.status).toBe("future");
+    expect(body.date_gmt).toBe("2026-09-28T00:00:00");
+  });
+
+  it("publishAtKst가 과거 시각이면 요청 없이 에러를 던진다", async () => {
+    const client = clientReturning([]);
+    const now = new Date("2026-10-01T00:00:00.000Z");
+
+    await expect(
+      updatePost(client, config, 5, { publishAtKst: "2026-09-28 09:00" }, { now }),
+    ).rejects.toThrow(/과거/);
+    expect(client.request).not.toHaveBeenCalled();
+  });
+
+  it("publishAtKst와 status를 함께 주면 요청 없이 에러를 던진다", async () => {
+    const client = clientReturning([]);
+
+    await expect(
+      updatePost(client, config, 5, { status: "publish", publishAtKst: "2026-09-28 09:00" }),
+    ).rejects.toThrow(/동시에/);
+    expect(client.request).not.toHaveBeenCalled();
+  });
 });
 
 describe("addSeoMeta", () => {

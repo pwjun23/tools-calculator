@@ -94,7 +94,9 @@ description: Draft a blog post for tools.molespapa.com (WordPress) in this chat 
 5. **글 수정은 `update --id <id>`로 같은 흐름을 따른다.** 본문을 바꾸려면
    `--content`/`--content-file`을 반드시 같이 준다 — `calculator`/`images`/`internalLinks`는
    본문 없이 단독으로 주면 에러가 난다(어디에 이어붙일지 알 수 없기 때문). 제목/카테고리/
-   태그/SEO만 바꾸는 거라면 본문 없이 그 필드만 줘도 된다.
+   태그/SEO만 바꾸는 거라면 본문 없이 그 필드만 줘도 된다. 이미 있는 글을 특정 시각에
+   (재)발행되도록 예약하려면 `--publish-at "YYYY-MM-DD HH:mm"`(KST)을 준다 — 상태를 `future`로
+   바꾸며, 과거 시각이면 에러가 난다.
 
 ## 하지 말아야 할 것
 
