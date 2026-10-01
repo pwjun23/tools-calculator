@@ -48,6 +48,7 @@ export async function createPost(
     content,
     status,
   };
+  if (input.slug !== undefined) body.slug = input.slug;
   if (categoryId !== undefined) body.categories = [categoryId];
   if (tagIds.length > 0) body.tags = tagIds;
   const meta = buildSeoMeta(input.seo);
@@ -74,10 +75,11 @@ async function buildPatchBody(
   config: ResolvedConfig,
   id: number,
   patch: PostPatch,
-  opts: { publish?: boolean },
+  opts: { publish?: boolean; now?: Date },
 ): Promise<Record<string, unknown>> {
   const body: Record<string, unknown> = {};
   if (patch.title !== undefined) body.title = patch.title;
+  if (patch.slug !== undefined) body.slug = patch.slug;
 
   const hasContentExtras =
     patch.calculator !== undefined || patch.images !== undefined || patch.internalLinks !== undefined;
@@ -108,7 +110,14 @@ async function buildPatchBody(
     }
   }
 
-  if (patch.status !== undefined) {
+  if (patch.publishAtKst !== undefined) {
+    if (patch.status !== undefined) {
+      throw new Error("publishAtKst와 status를 동시에 지정할 수 없습니다.");
+    }
+    const utc = kstToUtc(patch.publishAtKst, opts.now);
+    body.status = "future";
+    body.date_gmt = toWpDateGmt(utc);
+  } else if (patch.status !== undefined) {
     body.status = opts.publish ? patch.status : "draft";
   }
 
@@ -123,7 +132,7 @@ export async function updatePost(
   config: ResolvedConfig,
   id: number,
   patch: PostPatch,
-  opts: { publish?: boolean } = {},
+  opts: { publish?: boolean; now?: Date } = {},
 ): Promise<PostResult> {
   const body = await buildPatchBody(client, config, id, patch, opts);
   const response = await client.request<WpPostResponse>({
@@ -198,6 +207,7 @@ export async function schedulePost(
     status: "future",
     date_gmt: toWpDateGmt(utc),
   };
+  if (rest.slug !== undefined) body.slug = rest.slug;
   if (categoryId !== undefined) body.categories = [categoryId];
   if (tagIds.length > 0) body.tags = tagIds;
   const meta = buildSeoMeta(rest.seo);

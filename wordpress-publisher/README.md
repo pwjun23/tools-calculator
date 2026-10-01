@@ -79,12 +79,13 @@ npm run cli -- create --title "글 제목" --content-file ./post.html --publish
 | `--title` | 글 제목 (필수) |
 | `--content-file` | 본문 HTML 파일 경로. 지정하면 `--content`보다 우선합니다. |
 | `--content` | 본문 HTML을 문자열로 직접 전달 |
+| `--slug` | 퍼머링크에 쓸 슬러그 (선택). 생략하면 워드프레스가 제목에서 자동으로 만듭니다. |
 | `--category` | 카테고리 이름 (생략 시 `config.json`의 `default_category`) |
 | `--tags` | 태그 이름을 **쉼표(,)**로 구분해 전달 (생략 시 `default_tags`) |
 | `--focus-keyword` | Yoast 포커스 키워드 (선택) |
 | `--meta-description` | Yoast 메타 디스크립션 (선택) |
 | `--related-keywords` | 추가 관련 키워드, **쉼표(,)**로 구분 (선택). §5 참고 |
-| `--calculator` | 계산기 슬러그 (선택). 본문 끝에 해당 계산기 CTA를 자동으로 붙입니다. §5 참고 |
+| `--calculator` | 계산기 슬러그 (선택). 본문에 `{{calculator}}` 마커가 있으면 그 자리에, 없으면 본문 끝에 해당 계산기 CTA를 자동으로 붙입니다. §5-1 참고 |
 | `--dry-run` | 실제 요청을 보내지 않고 `{ id: 0, url: "(dry-run)", status }` 형태의 미리보기 결과만 출력 |
 | `--publish` | 즉시 발행. 생략하면 항상 `draft`로 생성됩니다 |
 
@@ -103,10 +104,12 @@ npm run cli -- update --id 123 --content-file ./post.html --calculator jeonse-vs
 | `--id` | 수정할 글의 ID (필수) |
 | `--title` | 새 제목 (선택) |
 | `--content-file` / `--content` | 새 본문 (선택). 둘 다 없으면 기존 본문을 그대로 둡니다 |
+| `--slug` | 새 슬러그 (선택) |
 | `--category` | 새 카테고리 (선택) |
 | `--tags` | 새 태그, 쉼표로 구분 (선택) |
 | `--focus-keyword` / `--meta-description` / `--related-keywords` | SEO 메타 (선택). 본문 여부와 무관하게 바로 적용됩니다 |
 | `--calculator` | 계산기 슬러그 (선택). §5-1 참고 |
+| `--publish-at` | 이 글을 이 시각(KST `"YYYY-MM-DD HH:mm"`)에 (재)발행되도록 예약합니다(선택). 지정하면 상태를 `future`로 바꿉니다. 과거 시각이면 에러가 나고 요청을 보내지 않습니다. |
 | `--dry-run` | 실제 요청을 보내지 않고 미리보기만 출력 |
 
 주의:
@@ -117,7 +120,11 @@ npm run cli -- update --id 123 --content-file ./post.html --calculator jeonse-vs
 - SEO 메타만 바꾸고 싶으면 `--content-file`/`--content` 없이 `--focus-keyword` 등만 줘도
   되고, 기존처럼 `add-seo` 명령을 써도 됩니다.
 - `--publish` 플래그를 줄 수는 있지만, `update`는 title/category/tags/content/seo만 바꾸고
-  발행 상태(`status`)는 건드리지 않으므로 현재는 눈에 보이는 효과가 없습니다.
+  발행 상태(`status`)는 건드리지 않으므로 현재는 눈에 보이는 효과가 없습니다. 상태를 바꾸려면
+  `--publish-at`을 쓰세요(즉시 발행은 아직 지원하지 않으며, 예약만 가능합니다).
+- `--publish-at`은 내부적으로 `status: publish`를 의미하지 않으므로, 프로그램에서
+  `updatePost()`를 직접 호출할 때 `patch.status`와 `publishAtKst`를 동시에 지정하면
+  에러를 던집니다 — 둘 중 하나만 쓰세요.
 
 ### add-seo — Yoast SEO 메타 채우기
 
@@ -194,6 +201,7 @@ npm run cli -- batch-update-meta --file ./meta.json
 | `title` | O | 글 제목 |
 | `content_file` | 택1 | 본문 HTML 파일 경로 (CSV 파일이 있는 폴더 기준 상대경로) |
 | `content` | 택1 | 본문 HTML 문자열 (`content_file`이 없을 때 사용) |
+| `slug` | X | 퍼머링크 슬러그 |
 | `category` | X | 카테고리 이름 |
 | `tags` | X | 태그, **세미콜론(;)**으로 구분 (예: `계산기;금융`) |
 | `focus_keyword` | X | Yoast 포커스 키워드 |
@@ -208,8 +216,8 @@ npm run cli -- batch-update-meta --file ./meta.json
 예시:
 
 ```csv
-title,content_file,category,tags,focus_keyword,meta_description,related_keywords,calculator,publish_at_kst
-"전세 대출 계산기",post1.html,부동산,계산기;금융,전세대출,전세 대출 이자 계산 방법,전세;대출;금리,jeonse-vs-loan,
+title,content_file,slug,category,tags,focus_keyword,meta_description,related_keywords,calculator,publish_at_kst
+"전세 대출 계산기",post1.html,전세-대출-비교,부동산,계산기;금융,전세대출,전세 대출 이자 계산 방법,전세;대출;금리,jeonse-vs-loan,
 ```
 
 **JSON** (camelCase, `PostInput` 형태를 그대로 배열로 작성; 태그는 배열, SEO는 객체):
@@ -218,7 +226,8 @@ title,content_file,category,tags,focus_keyword,meta_description,related_keywords
 [
   {
     "title": "전세 대출 계산기",
-    "contentHtml": "<p>도입부</p>{{image}}<p>본문이 이어집니다</p>",
+    "contentHtml": "<p>도입부</p>{{image}}<p>본문이 이어집니다. 아래에서 직접 계산해보세요:</p>{{calculator}}",
+    "slug": "전세-대출-비교",
     "category": "부동산",
     "tags": ["계산기", "금융"],
     "seo": {
@@ -243,18 +252,20 @@ title,content_file,category,tags,focus_keyword,meta_description,related_keywords
 ### 5-1. 본문 자동 보강 필드 (calculator / images / internalLinks / relatedKeywords)
 
 `createPost`/`schedulePost`(그리고 `contentHtml`을 함께 지정한 `update`)는 아래 필드가 있으면
-`contentHtml` **뒤에 자동으로 HTML 블록을 이어붙입니다.** 직접 `<img>`나 `<a>` 태그를 쓸 필요가
-없습니다.
+자동으로 HTML 블록을 채워 넣습니다. 직접 `<img>`나 `<a>` 태그를 쓸 필요가 없습니다.
 
 | 필드 | 타입 | 동작 |
 | --- | --- | --- |
-| `calculator` | `string` | `src/calculators.ts`에 정의된 슬러그(`salary`/`freelancer`/`car`/`jeonse`/`jeonse-vs-loan`)여야 합니다. 앞뒤 슬래시는 자동으로 제거되므로 `/jeonse-vs-loan`처럼 써도 됩니다(단 `/calculator/jeonse-vs-loan`처럼 다른 경로 조각이 섞이면 여전히 에러). 본문 끝에 해당 계산기로 연결되는 CTA 문단을 자동으로 붙입니다. 모르는 슬러그면 에러를 던집니다. |
+| `calculator` | `string` | `src/calculators.ts`에 정의된 슬러그(`salary`/`freelancer`/`car`/`jeonse`/`jeonse-vs-loan`)여야 합니다. 앞뒤 슬래시는 자동으로 제거되므로 `/jeonse-vs-loan`처럼 써도 됩니다(단 `/calculator/jeonse-vs-loan`처럼 다른 경로 조각이 섞이면 여전히 에러). `contentHtml`에 `{{calculator}}` 마커가 있으면 그 자리에, 없으면 본문 끝에 해당 계산기로 연결되는 CTA 문단을 자동으로 붙입니다. 마커는 있는데 `calculator`가 없으면 에러를 던지고, 모르는 슬러그여도 에러를 던집니다. |
 | `images` | `{ url, alt, caption? }[]` | 각 이미지를 `<img>`(caption이 있으면 `<figure>`)로 변환합니다. `contentHtml`에 `{{image}}` 마커가 있으면 그 자리에 순서대로 끼워넣고, 마커가 없거나 이미지가 더 많으면 남는 이미지는 본문 끝에 붙입니다. 마커가 이미지보다 많으면 에러를 던집니다. **`alt`가 비어 있으면 요청을 보내기 전에 에러를 던집니다** — 접근성/SEO를 위해 필수입니다. |
-| `internalLinks` | `{ url, anchorText }[]` | 이 목록으로 "함께 보면 좋은 글" 섹션을 만듭니다. **직접 지정하면 아래 자동 검색은 하지 않습니다.** |
+| `internalLinks` | `{ url, anchorText }[]` | 이 목록으로 "함께 보면 좋은 글" 섹션을 만듭니다(항상 본문 맨 끝). **직접 지정하면 아래 자동 검색은 하지 않습니다.** |
 | `seo.relatedKeywords` | `string[]` | Yoast 메타(`_yoast_wpseo_focuskeywords`, Yoast Premium 필드)에 저장됩니다. **`internalLinks`를 지정하지 않았다면** 이 키워드로 WordPress 기존 글을 검색해(`/posts?search=`) 관련 글 링크를 자동으로 만듭니다(최대 3개, 자기 자신·중복 제외). `--dry-run`에서는 실제 검색을 하지 않습니다. |
 
 `update`에서 이 네 필드 중 하나라도 주려면 `contentHtml`도 함께 지정해야 합니다(어떤 본문
 뒤에 이어붙일지 알 수 없기 때문입니다) — 없으면 에러를 던집니다.
+
+`slug`는 이 자동 보강과 무관하게 언제나 그대로 워드프레스 `slug` 필드로 전달됩니다(퍼머링크
+결정용). 생략하면 워드프레스가 제목에서 슬러그를 자동 생성합니다.
 
 ### batch-update-meta 입력
 
