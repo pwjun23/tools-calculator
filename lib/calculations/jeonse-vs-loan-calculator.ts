@@ -93,6 +93,14 @@ export interface JeonseVsLoanInput {
   officialPriceRatioPercent: number;
   /** 월 관리비 (원) */
   monthlyMaintenanceFee: number;
+  /** 전세보증금 (원), 매매 LTV와 독립된 값 */
+  jeonseDeposit: number;
+  /** 전세보증금 중 대출로 조달하는 비율 (%) */
+  jeonseLoanRatioPercent: number;
+  /** 보증금대출 이자율 (%) */
+  jeonseLoanRatePercent: number;
+  /** 월세 (원), 반전세 등 0보다 큰 월세가 있는 경우 */
+  monthlyRent: number;
 }
 
 export type PurchaseCostKey =
@@ -102,7 +110,12 @@ export type PurchaseCostKey =
   | "comprehensiveTax"
   | "maintenance";
 
-export type JeonseCostKey = "brokerageFee" | "maintenance" | "guaranteeInsurance";
+export type JeonseCostKey =
+  | "brokerageFee"
+  | "maintenance"
+  | "guaranteeInsurance"
+  | "loanInterest"
+  | "monthlyRent";
 
 export interface CostItem<K> {
   key: K;
@@ -127,8 +140,10 @@ export interface PurchaseResult {
 }
 
 export interface JeonseResult {
-  /** 전세금 (아파트가격 × LTV로 근사) */
+  /** 전세보증금 */
   deposit: number;
+  /** 보증금 중 대출로 조달한 금액 */
+  loanAmount: number;
   brokerageFee: number;
   annualGuaranteeInsurance: number;
   items: CostItem<JeonseCostKey>[];
@@ -157,6 +172,10 @@ export function calculateJeonseVsLoan(input: JeonseVsLoanInput): ComparisonResul
   const ltv = clampMin0(input.ltvPercent) / 100;
   const officialPriceRatio = clampMin0(input.officialPriceRatioPercent) / 100;
   const monthlyFee = clampMin0(input.monthlyMaintenanceFee);
+  const jeonseDeposit = clampMin0(input.jeonseDeposit);
+  const jeonseLoanRatio = clampMin0(input.jeonseLoanRatioPercent) / 100;
+  const jeonseLoanRate = clampMin0(input.jeonseLoanRatePercent) / 100;
+  const monthlyRent = clampMin0(input.monthlyRent);
   const months = years * 12;
 
   const loanAmount = Math.round(price * ltv);
@@ -210,15 +229,24 @@ export function calculateJeonseVsLoan(input: JeonseVsLoanInput): ComparisonResul
     ownedAsset: price,
   };
 
-  const deposit = loanAmount;
-  const brokerageFee = calculateJeonseBrokerageFee(deposit);
+  const brokerageFee = calculateJeonseBrokerageFee(jeonseDeposit);
   const annualGuaranteeInsurance = Math.round(
-    deposit * GUARANTEE_INSURANCE_ANNUAL_RATE,
+    jeonseDeposit * GUARANTEE_INSURANCE_ANNUAL_RATE,
   );
   const totalGuaranteeInsurance = annualGuaranteeInsurance * years;
   const jeonseMaintenance = annualMaintenance * years;
 
-  const jeonseTotal = brokerageFee + jeonseMaintenance + totalGuaranteeInsurance;
+  const jeonseLoanAmount = Math.round(jeonseDeposit * jeonseLoanRatio);
+  const annualJeonseLoanInterest = Math.round(jeonseLoanAmount * jeonseLoanRate);
+  const totalJeonseLoanInterest = annualJeonseLoanInterest * years;
+  const totalMonthlyRent = monthlyRent * 12 * years;
+
+  const jeonseTotal =
+    brokerageFee +
+    jeonseMaintenance +
+    totalGuaranteeInsurance +
+    totalJeonseLoanInterest +
+    totalMonthlyRent;
 
   const makeJeonseItem = (
     key: JeonseCostKey,
@@ -231,13 +259,16 @@ export function calculateJeonseVsLoan(input: JeonseVsLoanInput): ComparisonResul
   });
 
   const jeonse: JeonseResult = {
-    deposit,
+    deposit: jeonseDeposit,
+    loanAmount: jeonseLoanAmount,
     brokerageFee,
     annualGuaranteeInsurance,
     items: [
       makeJeonseItem("brokerageFee", brokerageFee),
       makeJeonseItem("maintenance", jeonseMaintenance),
       makeJeonseItem("guaranteeInsurance", totalGuaranteeInsurance),
+      makeJeonseItem("loanInterest", totalJeonseLoanInterest),
+      makeJeonseItem("monthlyRent", totalMonthlyRent),
     ],
     totalCost: jeonseTotal,
     monthlyAverageCost: Math.round(jeonseTotal / months),

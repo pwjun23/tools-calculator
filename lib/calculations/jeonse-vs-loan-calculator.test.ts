@@ -93,12 +93,40 @@ describe("calculateJeonseVsLoan (종합 비교)", () => {
     ltvPercent: 70,
     officialPriceRatioPercent: 67,
     monthlyMaintenanceFee: 400_000,
+    jeonseDeposit: 630_000_000,
+    jeonseLoanRatioPercent: 50,
+    jeonseLoanRatePercent: 4.0,
+    monthlyRent: 0,
   };
 
-  it("전세금은 아파트가격 × LTV로 근사한다", () => {
+  it("전세보증금은 입력값을 그대로 사용한다 (매매 LTV와 독립)", () => {
     const r = calculateJeonseVsLoan(base);
     expect(r.jeonse.deposit).toBe(630_000_000);
     expect(r.purchase.loanAmount).toBe(630_000_000);
+  });
+
+  it("보증금대출이자는 (보증금 × 대출비율) × 이자율로 계산된다", () => {
+    const r = calculateJeonseVsLoan(base);
+    const loanAmount = base.jeonseDeposit * (base.jeonseLoanRatioPercent / 100);
+    const annualInterest = Math.round(loanAmount * (base.jeonseLoanRatePercent / 100));
+    const item = r.jeonse.items.find((i) => i.key === "loanInterest")!;
+    expect(item.total).toBe(annualInterest * base.years);
+  });
+
+  it("보증금 대출비율이 0%면 보증금대출이자는 0원이다", () => {
+    const r = calculateJeonseVsLoan({ ...base, jeonseLoanRatioPercent: 0 });
+    const item = r.jeonse.items.find((i) => i.key === "loanInterest")!;
+    expect(item.total).toBe(0);
+  });
+
+  it("월세가 있으면 전세 총비용에 연환산 금액만큼 더해진다", () => {
+    const withoutRent = calculateJeonseVsLoan(base);
+    const withRent = calculateJeonseVsLoan({ ...base, monthlyRent: 300_000 });
+    expect(withRent.jeonse.totalCost - withoutRent.jeonse.totalCost).toBe(
+      300_000 * 12 * base.years,
+    );
+    const rentItem = withRent.jeonse.items.find((i) => i.key === "monthlyRent")!;
+    expect(rentItem.total).toBe(300_000 * 12 * base.years);
   });
 
   it("월평균비용은 총비용을 (거주년수×12)로 나눈 값이다", () => {

@@ -60,6 +60,8 @@ const PURCHASE_CATEGORY: Record<PurchaseCostKey, Category> = {
 const JEONSE_CATEGORY: Record<JeonseCostKey, Category> = {
   brokerageFee: "initial",
   guaranteeInsurance: "interest",
+  loanInterest: "interest",
+  monthlyRent: "interest",
   maintenance: "maintenance",
 };
 
@@ -74,6 +76,8 @@ const PURCHASE_LABEL: Record<PurchaseCostKey, string> = {
 const JEONSE_LABEL: Record<JeonseCostKey, string> = {
   brokerageFee: "중개보수",
   guaranteeInsurance: "보증보험료",
+  loanInterest: "보증금대출이자",
+  monthlyRent: "월세",
   maintenance: "관리비",
 };
 
@@ -110,6 +114,14 @@ export default function JeonseVsLoanCalculator() {
     setOfficialPriceRatioPercent,
     monthlyMaintenanceFee,
     setMonthlyMaintenanceFee,
+    jeonseDeposit,
+    setJeonseDeposit,
+    jeonseLoanRatioPercent,
+    setJeonseLoanRatioPercent,
+    jeonseLoanRatePercent,
+    setJeonseLoanRatePercent,
+    monthlyRent,
+    setMonthlyRent,
   } = inputs;
 
   const result = useMemo(
@@ -121,6 +133,10 @@ export default function JeonseVsLoanCalculator() {
         ltvPercent,
         officialPriceRatioPercent,
         monthlyMaintenanceFee,
+        jeonseDeposit,
+        jeonseLoanRatioPercent,
+        jeonseLoanRatePercent,
+        monthlyRent,
       }),
     [
       price,
@@ -129,6 +145,10 @@ export default function JeonseVsLoanCalculator() {
       ltvPercent,
       officialPriceRatioPercent,
       monthlyMaintenanceFee,
+      jeonseDeposit,
+      jeonseLoanRatioPercent,
+      jeonseLoanRatePercent,
+      monthlyRent,
     ],
   );
 
@@ -151,14 +171,17 @@ export default function JeonseVsLoanCalculator() {
     {
       scenario: "전세",
       initial: itemTotal(result.jeonse.items, "brokerageFee"),
-      interest: itemTotal(result.jeonse.items, "guaranteeInsurance"),
+      interest:
+        itemTotal(result.jeonse.items, "guaranteeInsurance") +
+        itemTotal(result.jeonse.items, "loanInterest") +
+        itemTotal(result.jeonse.items, "monthlyRent"),
       tax: 0,
       maintenance: itemTotal(result.jeonse.items, "maintenance"),
     },
   ];
 
-  const jeonseIsCheaperTotal = result.totalSavings > 0;
-  const winnerLabel = jeonseIsCheaperTotal ? "전세" : "구매";
+  const jeonseIsCheaperMonthly = result.monthlySavings > 0;
+  const winnerLabel = jeonseIsCheaperMonthly ? "전세" : "구매";
 
   return (
     <div className="grid gap-4 lg:grid-cols-3 lg:items-start">
@@ -168,57 +191,110 @@ export default function JeonseVsLoanCalculator() {
           조건 입력
         </h2>
         <div className="space-y-6">
-          <Slider
-            label="아파트 가격"
-            value={price}
-            min={300_000_000}
-            max={1_500_000_000}
-            step={10_000_000}
-            onChange={setPrice}
-            formatValue={formatKoreanAmount}
-          />
-          <Slider
-            label="거주 기간"
-            value={years}
-            min={1}
-            max={30}
-            onChange={setYears}
-            formatValue={(n) => `${n}년`}
-          />
-          <Slider
-            label="대출금리"
-            value={loanRatePercent}
-            min={2}
-            max={8}
-            step={0.1}
-            onChange={setLoanRatePercent}
-            formatValue={(n) => `${n.toFixed(1)}%`}
-          />
-          <Slider
-            label="LTV (담보인정비율)"
-            value={ltvPercent}
-            min={50}
-            max={90}
-            onChange={setLtvPercent}
-            formatValue={(n) => `${n}%`}
-          />
-          <Slider
-            label="공시가격비율"
-            value={officialPriceRatioPercent}
-            min={50}
-            max={90}
-            onChange={setOfficialPriceRatioPercent}
-            formatValue={(n) => `${n}%`}
-          />
-          <Slider
-            label="월 관리비"
-            value={monthlyMaintenanceFee}
-            min={200_000}
-            max={800_000}
-            step={10_000}
-            onChange={setMonthlyMaintenanceFee}
-            formatValue={formatKoreanAmount}
-          />
+          <div className="space-y-6">
+            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              공통 조건
+            </h3>
+            <Slider
+              label="아파트 가격"
+              value={price}
+              min={300_000_000}
+              max={1_500_000_000}
+              step={10_000_000}
+              onChange={setPrice}
+              formatValue={formatKoreanAmount}
+            />
+            <Slider
+              label="거주 기간"
+              value={years}
+              min={1}
+              max={30}
+              onChange={setYears}
+              formatValue={(n) => `${n}년`}
+            />
+            <Slider
+              label="월 관리비"
+              value={monthlyMaintenanceFee}
+              min={200_000}
+              max={800_000}
+              step={10_000}
+              onChange={setMonthlyMaintenanceFee}
+              formatValue={formatKoreanAmount}
+            />
+          </div>
+
+          <div className="space-y-6 border-t border-slate-200 pt-6 dark:border-slate-800">
+            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              매매(집장만) 조건
+            </h3>
+            <Slider
+              label="대출금리"
+              value={loanRatePercent}
+              min={2}
+              max={8}
+              step={0.1}
+              onChange={setLoanRatePercent}
+              formatValue={(n) => `${n.toFixed(1)}%`}
+            />
+            <Slider
+              label="LTV (매매담보대출비율)"
+              value={ltvPercent}
+              min={50}
+              max={90}
+              onChange={setLtvPercent}
+              formatValue={(n) => `${n}%`}
+            />
+            <Slider
+              label="공시가격비율"
+              value={officialPriceRatioPercent}
+              min={50}
+              max={90}
+              onChange={setOfficialPriceRatioPercent}
+              formatValue={(n) => `${n}%`}
+            />
+          </div>
+
+          <div className="space-y-6 border-t border-slate-200 pt-6 dark:border-slate-800">
+            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              전세 조건
+            </h3>
+            <Slider
+              label="전세보증금"
+              value={jeonseDeposit}
+              min={100_000_000}
+              max={1_200_000_000}
+              step={10_000_000}
+              onChange={setJeonseDeposit}
+              formatValue={formatKoreanAmount}
+            />
+            <Slider
+              label="보증금 대출비율"
+              value={jeonseLoanRatioPercent}
+              min={0}
+              max={100}
+              step={5}
+              onChange={setJeonseLoanRatioPercent}
+              formatValue={(n) => `${n}%`}
+            />
+            <Slider
+              label="보증금대출 이자율"
+              value={jeonseLoanRatePercent}
+              min={2}
+              max={8}
+              step={0.1}
+              onChange={setJeonseLoanRatePercent}
+              formatValue={(n) => `${n.toFixed(1)}%`}
+            />
+            <Slider
+              label="월세"
+              value={monthlyRent}
+              min={0}
+              max={2_000_000}
+              step={50_000}
+              onChange={setMonthlyRent}
+              formatValue={formatKoreanAmount}
+            />
+          </div>
         </div>
       </section>
 
@@ -324,7 +400,10 @@ export default function JeonseVsLoanCalculator() {
                   width={48}
                 />
                 <Tooltip
-                  formatter={(value) => formatWon(Number(value ?? 0))}
+                  formatter={(value, name) => [
+                    formatWon(Number(value ?? 0)),
+                    CATEGORY_META[name as Category].label,
+                  ]}
                   contentStyle={{
                     background: surface,
                     border: `1px solid ${gridColor}`,
@@ -380,9 +459,9 @@ export default function JeonseVsLoanCalculator() {
         <p className="px-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
           ※ 취득세·재산세·종합부동산세는 1세대 1주택자 기준 법정 세율을
           단순화한 참고용 추정치예요. 지방교육세·농어촌특별세, 세액공제는
-          반영하지 않았어요. 대출은 원금 상환 없이 이자만 낸다고 가정했고,
-          집값과 전세금은 거주 기간 동안 변하지 않는다고 가정했어요. 전세금은
-          아파트가격 × LTV로 근사한 값이라 실제 시세와 다를 수 있어요.
+          반영하지 않았어요. 대출(매매 대출·보증금대출 모두)은 원금 상환
+          없이 이자만 낸다고 가정했고, 집값과 전세금은 거주 기간 동안
+          변하지 않는다고 가정했어요.
         </p>
       </div>
     </div>
@@ -398,6 +477,10 @@ function useJeonseVsLoanInputs() {
     useState(67);
   const [monthlyMaintenanceFee, setMonthlyMaintenanceFee] =
     useState(400_000);
+  const [jeonseDeposit, setJeonseDeposit] = useState(630_000_000);
+  const [jeonseLoanRatioPercent, setJeonseLoanRatioPercent] = useState(50);
+  const [jeonseLoanRatePercent, setJeonseLoanRatePercent] = useState(4.0);
+  const [monthlyRent, setMonthlyRent] = useState(0);
 
   return {
     price,
@@ -412,6 +495,14 @@ function useJeonseVsLoanInputs() {
     setOfficialPriceRatioPercent,
     monthlyMaintenanceFee,
     setMonthlyMaintenanceFee,
+    jeonseDeposit,
+    setJeonseDeposit,
+    jeonseLoanRatioPercent,
+    setJeonseLoanRatioPercent,
+    jeonseLoanRatePercent,
+    setJeonseLoanRatePercent,
+    monthlyRent,
+    setMonthlyRent,
   };
 }
 
