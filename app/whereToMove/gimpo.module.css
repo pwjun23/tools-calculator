@@ -1,0 +1,36 @@
+.wrap { max-width: 880px; margin: 0 auto; padding: 20px 16px 48px; font-family: system-ui, -apple-system, 'Noto Sans KR', sans-serif; color: #1c1c1e; }
+.title { font-size: 1.5rem; margin: 0 0 4px; }
+.sub { margin: 0 0 16px; color: #6b6b70; font-size: .9rem; }
+.error { background: #fdecea; color: #a1281c; padding: 10px 12px; border-radius: 8px; }
+.filters { display: grid; gap: 10px; margin-bottom: 8px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.input, .small { padding: 10px 12px; border: 1px solid #d0d0d5; border-radius: 8px; font-size: 1rem; background: #fff; color: inherit; }
+.input { width: 100%; box-sizing: border-box; }
+.small { flex: 1 1 130px; min-width: 0; }
+.chip { padding: 7px 14px; border-radius: 999px; border: 1px solid #d0d0d5; background: #fff; color: inherit; cursor: pointer; font-size: .9rem; }
+.chip.on { background: #1f6feb; border-color: #1f6feb; color: #fff; }
+.check { display: flex; gap: 6px; align-items: center; font-size: .9rem; margin-left: auto; }
+.count { color: #6b6b70; margin: 8px 0; font-size: .9rem; }
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.card { border: 1px solid #e1e1e6; border-radius: 12px; padding: 12px 14px; background: #fff; }
+.top { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.badge { font-size: .75rem; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.ok { background: #e3f6e8; color: #17692e; }
+.no { background: #f0f0f2; color: #6b6b70; }
+.meta { color: #6b6b70; font-size: .85rem; margin: 4px 0 8px; }
+.nums { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .95rem; align-items: baseline; }
+.price { font-weight: 700; font-size: 1.05rem; }
+.plus { color: #17692e; }
+.minus { color: #b3261e; }
+.empty { text-align: center; color: #6b6b70; padding: 32px 0; }
+@media (prefers-color-scheme: dark) {
+  .wrap { color: #f2f2f7; }
+  .input, .small, .chip, .card { background: #1c1c1e; border-color: #3a3a3e; }
+  .chip.on { background: #1f6feb; border-color: #1f6feb; }
+  .sub, .meta, .count, .empty { color: #a1a1a8; }
+  .ok { background: #12351d; color: #7ee19a; }
+  .no { background: #2a2a2e; color: #a1a1a8; }
+  .plus { color: #7ee19a; }
+  .minus { color: #ff8a80; }
+  .error { background: #3a1613; color: #ffb4ab; }
+}
