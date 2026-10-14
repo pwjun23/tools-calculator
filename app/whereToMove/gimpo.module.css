@@ -17,7 +17,7 @@
 .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .card { border: 1px solid #e1e1e6; border-radius: 12px; padding: 12px 14px; background: #fff; }
 .top { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
-.badge { font-size: .75rem; padding: 2px 8px; border-radius: 999px; text-align: right; flex-shrink: 0; max-width: 55%; }
+.badge { font-size: .75rem; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
 .ok { background: #e3f6e8; color: #17692e; }
 .no { background: #f0f0f2; color: #6b6b70; }
 .meta { color: #6b6b70; font-size: .85rem; margin: 4px 0 8px; }
@@ -25,6 +25,8 @@
 .price { font-weight: 700; font-size: 1.05rem; }
 .plus { color: #17692e; }
 .minus { color: #b3261e; }
+.muted { color: #6b6b70; }
+.reason { margin: 8px 0 0; font-size: .85rem; color: #b3261e; }
 .empty { text-align: center; color: #6b6b70; padding: 32px 0; }
 /* 사이트 공통 테마(<html class="dark">, ThemeToggle)를 따른다. */
 :global(.dark) .wrap { color: #f2f2f7; }
@@ -34,5 +36,6 @@
 :global(.dark) .ok { background: #12351d; color: #7ee19a; }
 :global(.dark) .no { background: #2a2a2e; color: #a1a1a8; }
 :global(.dark) .plus { color: #7ee19a; }
-:global(.dark) .minus { color: #ff8a80; }
+:global(.dark) .minus, :global(.dark) .reason { color: #ff8a80; }
+:global(.dark) .muted { color: #a1a1a8; }
 :global(.dark) .error { background: #3a1613; color: #ffb4ab; }
