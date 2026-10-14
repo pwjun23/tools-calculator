@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import ThemeToggle from '@/app/components/ThemeToggle';
+import { refreshData } from './actions';
 import s from './gimpo.module.css';
 
 export type Deal = {
@@ -29,6 +30,7 @@ export default function GimpoBoard({ deals, updated, error }: { deals: Deal[]; u
   const [minArea, setMinArea] = useState('');
   const [maxMonthly, setMaxMonthly] = useState('');
   const [sort, setSort] = useState<(typeof SORTS)[number]['v']>('date');
+  const [refreshing, startRefresh] = useTransition();
 
   const dongs = useMemo(() => ['전체', ...Array.from(new Set(deals.map(d => d.dong)))], [deals]);
 
@@ -60,7 +62,12 @@ export default function GimpoBoard({ deals, updated, error }: { deals: Deal[]; u
           <h1 className={s.title}>김포 실거래 모아보기</h1>
           <p className={s.sub}>구래동 · 마산동 · 양촌읍{updated && ` · 데이터 갱신 ${updated.slice(0, 16).replace('T', ' ')}`}</p>
         </div>
-        <ThemeToggle />
+        <div className={s.tools}>
+          <button className={s.chip} disabled={refreshing} onClick={() => startRefresh(() => refreshData())}>
+            {refreshing ? '받는 중…' : '새로 받기'}
+          </button>
+          <ThemeToggle />
+        </div>
       </header>
       {error && <p className={s.error}>{error}</p>}
 
