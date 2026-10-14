@@ -20,6 +20,9 @@ const SORTS = [
 ] as const;
 
 const won = (v: number) => (v >= 10000 ? `${Math.round(v / 100) / 100}억` : `${v.toLocaleString()}만`);
+// 실거래 API에는 단지 번호가 없어 단지명 검색으로 연결한다. 네이버 검색은 맨 위에 네이버 부동산 단지 카드가 뜬다.
+const naverUrl = (d: Deal) => `https://m.search.naver.com/search.naver?query=${encodeURIComponent(`김포 ${d.dong} ${d.apt}`)}`;
+const hogangUrl = (d: Deal) => `https://hogangnono.com/search?q=${encodeURIComponent(`${d.dong} ${d.apt}`)}`;
 const price = (d: Deal) => (d.type === '월세' ? `${won(d.amount)} / ${d.rent}만` : won(d.amount));
 
 export default function GimpoBoard({ deals, updated, error }: { deals: Deal[]; updated: string; error?: string }) {
@@ -101,7 +104,9 @@ export default function GimpoBoard({ deals, updated, error }: { deals: Deal[]; u
         {rows.map((d, i) => (
           <li key={i} className={s.card}>
             <div className={s.top}>
-              <strong>{d.apt}</strong>
+              <a className={s.cardLink} href={naverUrl(d)} target="_blank" rel="noopener noreferrer">
+                <strong>{d.apt}</strong>
+              </a>
               <span className={`${s.badge} ${d.ok ? s.ok : s.no}`}>{d.ok ? '적합' : '부적합'}</span>
             </div>
             <div className={s.meta}>{d.dong} · {d.type} · {d.area}㎡ · {d.floor}층 · {d.date}</div>
@@ -119,6 +124,10 @@ export default function GimpoBoard({ deals, updated, error }: { deals: Deal[]; u
                 {d.loan > 0 && ` · 필요 대출 ${won(d.loan)}(금액의 ${Math.round((d.loan / d.amount) * 100)}%)`}
               </p>
             )}
+            <div className={s.links}>
+              <span>네이버 부동산 ↗</span>
+              <a href={hogangUrl(d)} target="_blank" rel="noopener noreferrer">호갱노노 ↗</a>
+            </div>
           </li>
         ))}
       </ul>

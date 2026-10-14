@@ -15,7 +15,13 @@
 .check { display: flex; gap: 6px; align-items: center; font-size: .9rem; margin-left: auto; }
 .count { color: #6b6b70; margin: 8px 0; font-size: .9rem; }
 .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.card { border: 1px solid #e1e1e6; border-radius: 12px; padding: 12px 14px; background: #fff; }
+.card { position: relative; border: 1px solid #e1e1e6; border-radius: 12px; padding: 12px 14px; background: #fff; transition: border-color .15s; }
+.card:hover { border-color: #1f6feb; }
+/* 카드 전체를 네이버 링크로 덮는다(stretched link). 호갱노노 링크는 위로 올려 따로 눌리게 한다. */
+.cardLink { color: inherit; text-decoration: none; }
+.cardLink::after { content: ''; position: absolute; inset: 0; border-radius: 12px; }
+.links { display: flex; gap: 14px; margin-top: 10px; font-size: .8rem; color: #1f6feb; }
+.links a { position: relative; z-index: 1; color: inherit; text-decoration: none; }
 .top { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
 .badge { font-size: .75rem; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
 .ok { background: #e3f6e8; color: #17692e; }
@@ -38,4 +44,5 @@
 :global(.dark) .plus { color: #7ee19a; }
 :global(.dark) .minus, :global(.dark) .reason { color: #ff8a80; }
 :global(.dark) .muted { color: #a1a1a8; }
+:global(.dark) .links { color: #6ea8fe; }
 :global(.dark) .error { background: #3a1613; color: #ffb4ab; }
