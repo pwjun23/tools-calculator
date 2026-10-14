@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { isValidSessionCookie } from "@/lib/admin/session";
+import {
+  SESSION_COOKIE as WTM_SESSION_COOKIE,
+  isValidSessionCookie as isValidWtmSessionCookie,
+} from "@/lib/whereToMove/session";
 
 export async function proxy(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith("/whereToMove")) {
-    return checkBasicAuth(request);
+    return checkWhereToMove(request);
   }
 
   if (request.nextUrl.pathname === "/admin/login") {
@@ -19,26 +23,18 @@ export async function proxy(request: NextRequest) {
   return NextResponse.redirect(new URL("/admin/login", request.url));
 }
 
-// /whereToMove 는 아이디/비밀번호(Basic 인증)로 보호한다. (GIMPO_USER, GIMPO_PASS)
-function checkBasicAuth(request: NextRequest) {
-  const user = process.env.GIMPO_USER;
-  const pass = process.env.GIMPO_PASS;
-  if (!user || !pass) {
-    return new NextResponse("인증 설정이 없습니다.", { status: 503 });
+// /whereToMove 는 아이디/비밀번호(GIMPO_USER, GIMPO_PASS) 로그인 쿠키로 보호한다.
+async function checkWhereToMove(request: NextRequest) {
+  if (request.nextUrl.pathname === "/whereToMove/login") {
+    return NextResponse.next();
   }
 
-  const header = request.headers.get("authorization") || "";
-  if (header.startsWith("Basic ")) {
-    try {
-      const [u, ...rest] = atob(header.slice(6)).split(":");
-      if (u === user && rest.join(":") === pass) return NextResponse.next();
-    } catch {}
+  const cookie = request.cookies.get(WTM_SESSION_COOKIE)?.value;
+  if (await isValidWtmSessionCookie(cookie)) {
+    return NextResponse.next();
   }
 
-  return new NextResponse("로그인이 필요합니다.", {
-    status: 401,
-    headers: { "WWW-Authenticate": 'Basic realm="whereToMove", charset="UTF-8"' },
-  });
+  return NextResponse.redirect(new URL("/whereToMove/login", request.url));
 }
 
 export const config = {
