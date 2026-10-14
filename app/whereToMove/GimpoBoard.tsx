@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import ThemeToggle from '@/app/components/ThemeToggle';
 import s from './gimpo.module.css';
 
 export type Deal = {
@@ -53,8 +54,13 @@ export default function GimpoBoard({ deals, updated, error }: { deals: Deal[]; u
 
   return (
     <main className={s.wrap}>
-      <h1 className={s.title}>김포 실거래 모아보기</h1>
-      <p className={s.sub}>구래동 · 마산동 · 양촌읍{updated && ` · 데이터 갱신 ${updated.slice(0, 16).replace('T', ' ')}`}</p>
+      <header className={s.head}>
+        <div>
+          <h1 className={s.title}>김포 실거래 모아보기</h1>
+          <p className={s.sub}>구래동 · 마산동 · 양촌읍{updated && ` · 데이터 갱신 ${updated.slice(0, 16).replace('T', ' ')}`}</p>
+        </div>
+        <ThemeToggle />
+      </header>
       {error && <p className={s.error}>{error}</p>}
 
       <section className={s.filters}>
