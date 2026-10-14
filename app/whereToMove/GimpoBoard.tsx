@@ -7,6 +7,7 @@ import s from './gimpo.module.css';
 export type Deal = {
   recorded: string; type: '매매' | '전세' | '월세'; dong: string; apt: string; area: number; floor: number | string;
   date: string; amount: number; rent: number; loan: number; monthly: number; margin: number; ok: boolean;
+  reason?: string;
 };
 
 const TYPES = ['매매', '전세', '월세'] as const;
@@ -94,18 +95,25 @@ export default function GimpoBoard({ deals, updated, error }: { deals: Deal[]; u
           <li key={i} className={s.card}>
             <div className={s.top}>
               <strong>{d.apt}</strong>
-              <span className={`${s.badge} ${d.ok ? s.ok : s.no}`}>{d.ok ? '적합' : '부적합'}</span>
+              <span className={`${s.badge} ${d.ok ? s.ok : s.no}`}>{d.ok ? '적합' : d.reason || '부적합'}</span>
             </div>
             <div className={s.meta}>{d.dong} · {d.type} · {d.area}㎡ · {d.floor}층 · {d.date}</div>
             <div className={s.nums}>
               <span className={s.price}>{price(d)}</span>
               <span>월 부담 <b>{d.monthly}만</b></span>
-              <span className={d.margin >= 0 ? s.plus : s.minus}>여유 {d.margin >= 0 ? '+' : ''}{d.margin}만</span>
+              {d.margin >= 0
+                ? <span className={s.plus}>여유 +{d.margin}만</span>
+                : <span className={s.minus}>초과 {Math.abs(d.margin)}만</span>}
             </div>
           </li>
         ))}
       </ul>
-      {!rows.length && !error && <p className={s.empty}>조건에 맞는 거래가 없습니다.</p>}
+      {!rows.length && !error && (
+        <p className={s.empty}>
+          조건에 맞는 거래가 없습니다.
+          {okOnly && <><br />&apos;예산 적합만&apos;을 풀면 부적합 거래와 사유를 볼 수 있어요.</>}
+        </p>
+      )}
     </main>
   );
 }
