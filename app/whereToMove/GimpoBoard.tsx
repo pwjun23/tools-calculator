@@ -102,16 +102,23 @@ export default function GimpoBoard({ deals, updated, error }: { deals: Deal[]; u
           <li key={i} className={s.card}>
             <div className={s.top}>
               <strong>{d.apt}</strong>
-              <span className={`${s.badge} ${d.ok ? s.ok : s.no}`}>{d.ok ? '적합' : d.reason || '부적합'}</span>
+              <span className={`${s.badge} ${d.ok ? s.ok : s.no}`}>{d.ok ? '적합' : '부적합'}</span>
             </div>
             <div className={s.meta}>{d.dong} · {d.type} · {d.area}㎡ · {d.floor}층 · {d.date}</div>
             <div className={s.nums}>
               <span className={s.price}>{price(d)}</span>
               <span>월 부담 <b>{d.monthly}만</b></span>
+              {/* 여유는 월 예산만 본 값이다. 부적합이면 대출 조건에 걸렸을 수 있으므로 초록색을 쓰지 않는다. */}
               {d.margin >= 0
-                ? <span className={s.plus}>여유 +{d.margin}만</span>
-                : <span className={s.minus}>초과 {Math.abs(d.margin)}만</span>}
+                ? <span className={d.ok ? s.plus : s.muted}>월 예산 여유 +{d.margin}만</span>
+                : <span className={s.minus}>월 예산 초과 {Math.abs(d.margin)}만</span>}
             </div>
+            {!d.ok && (
+              <p className={s.reason}>
+                부적합 사유: {d.reason || '조건 미달'}
+                {d.loan > 0 && ` · 필요 대출 ${won(d.loan)}(금액의 ${Math.round((d.loan / d.amount) * 100)}%)`}
+              </p>
+            )}
           </li>
         ))}
       </ul>
