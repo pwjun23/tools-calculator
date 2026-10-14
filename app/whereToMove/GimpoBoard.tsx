@@ -28,7 +28,7 @@ const price = (d: Deal) => (d.type === '월세' ? `${won(d.amount)} / ${d.rent}�
 export default function GimpoBoard({ deals, updated, error }: { deals: Deal[]; updated: string; error?: string }) {
   const [q, setQ] = useState('');
   const [dong, setDong] = useState('전체');
-  const [types, setTypes] = useState<string[]>([...TYPES]);
+  const [types, setTypes] = useState<string[]>(['전세']); // 처음에는 전세만 보여 준다.
   const [okOnly, setOkOnly] = useState(true);
   const [minArea, setMinArea] = useState('');
   const [maxMonthly, setMaxMonthly] = useState('');
