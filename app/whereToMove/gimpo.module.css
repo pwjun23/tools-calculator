@@ -46,3 +46,4 @@
 :global(.dark) .muted { color: #a1a1a8; }
 :global(.dark) .links { color: #6ea8fe; }
 :global(.dark) .error { background: #3a1613; color: #ffb4ab; }
+.tools a { text-decoration: none; }

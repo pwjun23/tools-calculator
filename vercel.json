@@ -1,0 +1,6 @@
+{
+  "crons": [
+    { "path": "/api/where-to-move/cron/collect", "schedule": "0 21 * * *" },
+    { "path": "/api/where-to-move/cron/notify", "schedule": "0 23 * * 0" }
+  ]
+}

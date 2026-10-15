@@ -1,8 +1,10 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { authClient } from '@/lib/whereToMove/auth-client';
 import ThemeToggle from '@/app/components/ThemeToggle';
-import { refreshData } from './actions';
 import s from './gimpo.module.css';
 
 export type Deal = {
@@ -21,11 +23,13 @@ const SORTS = [
 
 const won = (v: number) => (v >= 10000 ? `${Math.round(v / 100) / 100}억` : `${v.toLocaleString()}만`);
 // 실거래 API에는 단지 번호가 없어 단지명 검색으로 연결한다. 네이버 검색은 맨 위에 네이버 부동산 단지 카드가 뜬다.
-const naverUrl = (d: Deal) => `https://m.search.naver.com/search.naver?query=${encodeURIComponent(`김포 ${d.dong} ${d.apt}`)}`;
+const naverUrl = (d: Deal, label: string) => `https://m.search.naver.com/search.naver?query=${encodeURIComponent(`${label} ${d.dong} ${d.apt}`)}`;
 const hogangUrl = (d: Deal) => `https://hogangnono.com/search?q=${encodeURIComponent(`${d.dong} ${d.apt}`)}`;
 const price = (d: Deal) => (d.type === '월세' ? `${won(d.amount)} / ${d.rent}만` : won(d.amount));
 
-export default function GimpoBoard({ deals, updated, error }: { deals: Deal[]; updated: string; error?: string }) {
+export default function GimpoBoard({ deals, title, subtitle, notice }: { deals: Deal[]; title: string; subtitle: string; notice?: { text: string; relogin: boolean } }) {
+  const label = title.split(' ')[0];
+  const router = useRouter();
   const [q, setQ] = useState('');
   const [dong, setDong] = useState('전체');
   const [types, setTypes] = useState<string[]>(['전세']); // 처음에는 전세만 보여 준다.
@@ -33,7 +37,6 @@ export default function GimpoBoard({ deals, updated, error }: { deals: Deal[]; u
   const [minArea, setMinArea] = useState('');
   const [maxMonthly, setMaxMonthly] = useState('');
   const [sort, setSort] = useState<(typeof SORTS)[number]['v']>('date');
-  const [refreshing, startRefresh] = useTransition();
 
   const dongs = useMemo(() => ['전체', ...Array.from(new Set(deals.map(d => d.dong)))], [deals]);
 
@@ -62,17 +65,25 @@ export default function GimpoBoard({ deals, updated, error }: { deals: Deal[]; u
     <main className={s.wrap}>
       <header className={s.head}>
         <div>
-          <h1 className={s.title}>김포 실거래 모아보기</h1>
-          <p className={s.sub}>구래동 · 마산동 · 양촌읍{updated && ` · 데이터 갱신 ${updated.slice(0, 16).replace('T', ' ')}`}</p>
+          <h1 className={s.title}>{title}</h1>
+          <p className={s.sub}>{subtitle}</p>
         </div>
         <div className={s.tools}>
-          <button className={s.chip} disabled={refreshing} onClick={() => startRefresh(() => refreshData())}>
-            {refreshing ? '받는 중…' : '새로 받기'}
-          </button>
+          <Link className={s.chip} href="/whereToMove/settings">설정</Link>
+          <button type="button" className={s.chip} onClick={() => authClient.signOut().then(() => router.replace('/whereToMove/login'))}>로그아웃</button>
           <ThemeToggle />
         </div>
       </header>
-      {error && <p className={s.error}>{error}</p>}
+      {notice && (
+        <div className={s.error}>
+          <p>{notice.text}</p>
+          {notice.relogin && (
+            <button type="button" className={s.chip} onClick={() => authClient.signIn.social({ provider: 'kakao', callbackURL: '/whereToMove' })}>
+              카카오로 다시 로그인
+            </button>
+          )}
+        </div>
+      )}
 
       <section className={s.filters}>
         <input className={s.input} placeholder="단지명 검색" value={q} onChange={e => setQ(e.target.value)} />
@@ -104,7 +115,7 @@ export default function GimpoBoard({ deals, updated, error }: { deals: Deal[]; u
         {rows.map((d, i) => (
           <li key={i} className={s.card}>
             <div className={s.top}>
-              <a className={s.cardLink} href={naverUrl(d)} target="_blank" rel="noopener noreferrer">
+              <a className={s.cardLink} href={naverUrl(d, label)} target="_blank" rel="noopener noreferrer">
                 <strong>{d.apt}</strong>
               </a>
               <span className={`${s.badge} ${d.ok ? s.ok : s.no}`}>{d.ok ? '적합' : '부적합'}</span>
@@ -131,7 +142,7 @@ export default function GimpoBoard({ deals, updated, error }: { deals: Deal[]; u
           </li>
         ))}
       </ul>
-      {!rows.length && !error && (
+      {!rows.length && (
         <p className={s.empty}>
           조건에 맞는 거래가 없습니다.
           {okOnly && <><br />&apos;예산 적합만&apos;을 풀면 부적합 거래와 사유를 볼 수 있어요.</>}
