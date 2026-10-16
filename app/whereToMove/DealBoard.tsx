@@ -1,10 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authClient } from '@/lib/whereToMove/auth-client';
-import { groupDongs, toggleDong } from '@/lib/whereToMove/board';
+import { groupDongs, readFilters, toggleDong } from '@/lib/whereToMove/board';
 import { TRIP_ICON, TRIP_MODES, commuteHelp, kakaoRouteUrl, kmLabel, parseTripChoice, passesTrip, tripChoices, type LatLng, type Place, type Trip } from '@/lib/whereToMove/commute';
 import { umdOf } from '@/lib/whereToMove/judge';
 import ThemeToggle from '@/app/components/ThemeToggle';
@@ -26,6 +26,9 @@ const SORTS = [
   { v: 'amount', t: '금액 낮은순' },
   { v: 'area', t: '면적 넓은순' },
 ] as const;
+
+/** 마지막에 고른 필터(이 브라우저에만 저장). 검색어는 저장하지 않는다. */
+const FILTER_KEY = 'wtm.filters.v1';
 
 const won = (v: number) => (v >= 10000 ? `${Math.round(v / 100) / 100}억` : `${v.toLocaleString()}만`);
 // 실거래 API에는 단지 번호가 없어 단지명 검색으로 연결한다. 네이버 검색은 맨 위에 네이버 부동산 단지 카드가 뜬다.
@@ -71,6 +74,34 @@ export default function DealBoard({ deals, regions, notice, places = [] }: {
   const [commute, setCommute] = useState('off');
 
   const dongGroups = useMemo(() => groupDongs(regions), [regions]);
+  const [restored, setRestored] = useState(false);
+
+  // 서버 화면과 어긋나지 않게 첫 렌더 뒤에 저장된 필터를 불러온다. 저장소를 못 쓰면 기본값 그대로.
+  useEffect(() => {
+    try {
+      const f = readFilters(localStorage.getItem(FILTER_KEY), {
+        dongs: dongGroups.flatMap(g => g.dongs.map(d => `${g.sggCd}:${d}`)),
+        sorts: SORTS.map(o => o.v),
+      });
+      /* eslint-disable react-hooks/set-state-in-effect -- 저장된 값으로 한 번 맞춘다 */
+      if (f.dongs) setDongs(f.dongs);
+      if (f.types) setTypes(f.types);
+      if (f.okOnly !== undefined) setOkOnly(f.okOnly);
+      if (f.minArea !== undefined) setMinArea(f.minArea);
+      if (f.maxMonthly !== undefined) setMaxMonthly(f.maxMonthly);
+      if (f.sort) setSort(f.sort as (typeof SORTS)[number]['v']);
+      if (f.commute) setCommute(f.commute);
+    } catch { /* 저장소 사용 불가 */ }
+    setRestored(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [dongGroups]);
+
+  useEffect(() => {
+    if (!restored) return;
+    try {
+      localStorage.setItem(FILTER_KEY, JSON.stringify({ dongs, types, okOnly, minArea, maxMonthly, sort, commute }));
+    } catch { /* 저장소 사용 불가 */ }
+  }, [restored, dongs, types, okOnly, minArea, maxMonthly, sort, commute]);
   const multi = regions.length > 1;
 
   const choice = useMemo(() => parseTripChoice(commute, places), [commute, places]);
