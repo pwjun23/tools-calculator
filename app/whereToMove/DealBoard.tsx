@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authClient } from '@/lib/whereToMove/auth-client';
-import { groupDongs } from '@/lib/whereToMove/board';
+import { groupDongs, toggleDong } from '@/lib/whereToMove/board';
 import ThemeToggle from '@/app/components/ThemeToggle';
 import s from './board.module.css';
 
@@ -31,7 +31,7 @@ const price = (d: Deal) => (d.type === '월세' ? `${won(d.amount)} / ${d.rent}�
 export default function DealBoard({ deals, regions, notice }: { deals: Deal[]; regions: { sggCd: string; label: string; dongs: string[] }[]; notice?: { text: string; relogin: boolean } }) {
   const router = useRouter();
   const [q, setQ] = useState('');
-  const [dong, setDong] = useState('전체'); // '전체' 또는 'sggCd:동'
+  const [dongs, setDongs] = useState<string[]>([]); // 'sggCd:동' 목록. 비어 있으면 전체.
   const [types, setTypes] = useState<string[]>(['전세']); // 처음에는 전세만 보여 준다.
   const [okOnly, setOkOnly] = useState(true);
   const [minArea, setMinArea] = useState('');
@@ -44,7 +44,7 @@ export default function DealBoard({ deals, regions, notice }: { deals: Deal[]; r
   const rows = useMemo(() => {
     const kw = q.replace(/\s/g, '');
     const out = deals.filter(d =>
-      (dong === '전체' || `${d.sggCd}:${d.dong}` === dong) &&
+      (!dongs.length || dongs.includes(`${d.sggCd}:${d.dong}`)) &&
       types.includes(d.type) &&
       (!okOnly || d.ok) &&
       (!minArea || d.area >= Number(minArea)) &&
@@ -57,7 +57,7 @@ export default function DealBoard({ deals, regions, notice }: { deals: Deal[]; r
       area: (a, b) => b.area - a.area,
     };
     return out.sort(by[sort]);
-  }, [deals, q, dong, types, okOnly, minArea, maxMonthly, sort]);
+  }, [deals, q, dongs, types, okOnly, minArea, maxMonthly, sort]);
 
   const toggleType = (t: string) =>
     setTypes(cur => (cur.includes(t) ? cur.filter(x => x !== t) : [...cur, t]));
@@ -86,10 +86,10 @@ export default function DealBoard({ deals, regions, notice }: { deals: Deal[]; r
       <section className={s.filters}>
         <input className={s.input} placeholder="단지명 검색" value={q} onChange={e => setQ(e.target.value)} />
         <div className={s.row}>
-          <button className={`${s.chip} ${dong === '전체' ? s.on : ''}`} onClick={() => setDong('전체')}>전체</button>
+          <button className={`${s.chip} ${!dongs.length ? s.on : ''}`} onClick={() => setDongs([])}>전체</button>
           {!multi && dongGroups[0]?.dongs.map(d => {
             const v = `${dongGroups[0].sggCd}:${d}`;
-            return <button key={v} className={`${s.chip} ${dong === v ? s.on : ''}`} onClick={() => setDong(v)}>{d}</button>;
+            return <button key={v} className={`${s.chip} ${dongs.includes(v) ? s.on : ''}`} onClick={() => setDongs(cur => toggleDong(cur, v))}>{d}</button>;
           })}
         </div>
         {multi && dongGroups.map(g => (
@@ -97,7 +97,7 @@ export default function DealBoard({ deals, regions, notice }: { deals: Deal[]; r
             <span className={s.muted}>{g.label}</span>
             {g.dongs.map(d => {
               const v = `${g.sggCd}:${d}`;
-              return <button key={v} className={`${s.chip} ${dong === v ? s.on : ''}`} onClick={() => setDong(v)}>{d}</button>;
+              return <button key={v} className={`${s.chip} ${dongs.includes(v) ? s.on : ''}`} onClick={() => setDongs(cur => toggleDong(cur, v))}>{d}</button>;
             })}
           </div>
         ))}
