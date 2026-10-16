@@ -115,3 +115,24 @@ describe("uniqueByKey", () => {
     expect(out).toEqual([{ key: "a", n: 1 }, { key: "b", n: 2 }]);
   });
 });
+
+describe("단지 주소", () => {
+  const base = { aptNm: "가상", umdNm: "양촌읍 양곡리", excluUseAr: "84.9", floor: "3", dealYear: "2026", dealMonth: "9", dealDay: "1", jibun: "12-3", aptSeq: "41570-1" };
+  it("매매: 도로명 + 본번(-부번)", () => {
+    const t = normalizeTrade({ ...base, dealAmount: "30,000", roadNm: "가상로", roadNmBonbun: "00215", roadNmBubun: "00003" }, "41570")!;
+    expect(t.roadAddr).toBe("경기도 김포시 가상로 215-3");
+    expect(t.jibunAddr).toBe("경기도 김포시 양촌읍 양곡리 12-3");
+    expect(t.aptSeq).toBe("41570-1");
+  });
+  it("매매: 부번 0 은 생략, 도로명이 없으면 빈 값", () => {
+    expect(normalizeTrade({ ...base, dealAmount: "1", roadNm: "가상로", roadNmBonbun: "00064", roadNmBubun: "00000" }, "41570")!.roadAddr).toBe("경기도 김포시 가상로 64");
+    expect(normalizeTrade({ ...base, dealAmount: "1", roadNm: "" }, "41570")!.roadAddr).toBe("");
+  });
+  it("전월세: roadnm 그대로", () => {
+    const r = normalizeRent({ ...base, deposit: "1", monthlyRent: "0", roadnm: "가상로 64" }, "41570")!;
+    expect(r.roadAddr).toBe("경기도 김포시 가상로 64");
+  });
+  it("지번이 없으면 지번 주소도 빈 값", () => {
+    expect(normalizeRent({ ...base, jibun: "", deposit: "1", monthlyRent: "0" }, "41570")!.jibunAddr).toBe("");
+  });
+});

@@ -15,6 +15,13 @@
       "when": 1792116876265,
       "tag": "0001_lyrical_madame_masque",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792131591529,
+      "tag": "0002_aromatic_triton",
+      "breakpoints": true
     }
   ]
 }

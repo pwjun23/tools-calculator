@@ -77,3 +77,15 @@ describe("collectRegion 로그 조회 실패", () => {
     expect(f.upserts).toEqual([]);
   });
 });
+
+describe("collectRegion 단지 저장", () => {
+  it("단지 저장이 실패해도 그 달은 성공으로 기록한다", async () => {
+    const f = fakeDeps(["202610", "202609"]);
+    const seeded: number[] = [];
+    const deps = { ...f.deps, seedComplexes: async (d: MolitDeal[]) => { seeded.push(d.length); throw new Error("가상 단지 오류"); } };
+    const r = await collectRegion("11110", deps, { now: NOW, maxBackfill: 0 });
+    expect(r.results.every((x) => !x.error)).toBe(true);
+    expect(f.marked).toEqual(["202610", "202609"]);
+    expect(seeded).toEqual([1, 1]);
+  });
+});

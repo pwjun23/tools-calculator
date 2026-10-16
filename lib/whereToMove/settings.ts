@@ -18,6 +18,20 @@ const loanSchema = z.object({
 /** 한 사용자가 고를 수 있는 시·군·구 수(공공 API 호출량 보호). */
 export const MAX_REGIONS = 5;
 
+/** 직장 수. 지금은 1곳, 나중에 늘린다. */
+export const MAX_WORKPLACES = 1;
+
+// 좌표는 도로명주소 좌표 API로 구해 저장한다. 그 키 승인 전 임시(카카오 실시간)에는 좌표 없이 주소만 저장하고,
+// 목록을 열 때 주소로 좌표를 구한다(카카오 결과는 저장 금지).
+const workplaceSchema = z
+  .object({
+    label: z.string().trim().min(1).max(20),
+    address: z.string().trim().min(1).max(200),
+    lat: z.number().min(33).max(39).optional(),
+    lng: z.number().min(124).max(132).optional(),
+  })
+  .refine((w) => (w.lat === undefined) === (w.lng === undefined), { message: "위도와 경도는 함께 있어야 합니다", path: ["lat"] });
+
 const settingsSchema = z.object({
   regions: z
     .array(
@@ -30,6 +44,7 @@ const settingsSchema = z.object({
     .min(1)
     .max(MAX_REGIONS)
     .refine((rs) => new Set(rs.map((r) => r.sggCd)).size === rs.length, { message: "같은 시·군·구를 두 번 고를 수 없습니다" }),
+  workplaces: z.array(workplaceSchema).max(MAX_WORKPLACES),
   cash: money,
   monthlyBudget: z.number().positive(),
   monthlyMgmt: money,
@@ -58,10 +73,12 @@ const settingsSchema = z.object({
 
 export type Settings = z.infer<typeof settingsSchema>;
 export type Loan = z.infer<typeof loanSchema>;
+export type Workplace = z.infer<typeof workplaceSchema>;
 
 /** 처음 로그인한 사용자의 설정. 실제 개인 값이 아닌 일반적인 출발점이다. */
 export const DEFAULT_SETTINGS: Settings = {
   regions: [{ sggCd: "41570", label: "경기 김포시", dongs: ["구래동", "마산동", "양촌읍"] }],
+  workplaces: [],
   cash: 5000,
   monthlyBudget: 150,
   monthlyMgmt: 25,

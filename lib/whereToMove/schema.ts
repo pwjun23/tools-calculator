@@ -1,4 +1,4 @@
-import { boolean, date, index, integer, jsonb, pgTable, primaryKey, real, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, date, doublePrecision, index, integer, jsonb, pgTable, primaryKey, real, serial, text, timestamp } from "drizzle-orm/pg-core";
 import type { Settings } from "./settings";
 import type { DealType } from "./types";
 
@@ -99,4 +99,24 @@ export const wtmCollectLog = pgTable(
     collectedAt: timestamp("collected_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.sggCd, t.ym] })],
+);
+
+export type ComplexStatus = "pending" | "ok" | "notfound";
+
+/** 단지 좌표(도로명주소 API). 키는 거래 표와 같은 (시·군·구, 동, 단지명). */
+export const wtmComplexes = pgTable(
+  "wtm_complexes",
+  {
+    sggCd: text("sgg_cd").notNull(),
+    dong: text("dong").notNull(),
+    apt: text("apt").notNull(),
+    aptSeq: text("apt_seq").notNull().default(""),
+    roadAddr: text("road_addr").notNull().default(""),
+    jibunAddr: text("jibun_addr").notNull().default(""),
+    lat: doublePrecision("lat"),
+    lng: doublePrecision("lng"),
+    status: text("status").$type<ComplexStatus>().notNull().default("pending"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.sggCd, t.dong, t.apt] }), index("wtm_complexes_status_idx").on(t.status)],
 );

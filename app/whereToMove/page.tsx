@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
+import { estimateCommute, straightKm } from "@/lib/whereToMove/commute";
+import { complexKey } from "@/lib/whereToMove/complexes";
 import { requireUser } from "@/lib/whereToMove/current-user";
+import { fillLiveSites, kakaoAddress, kakaoComplex, kakaoLiveKey } from "@/lib/whereToMove/kakao-live";
 import { deriveParams, evaluateDeal, filterDeals } from "@/lib/whereToMove/judge";
 import { buildNotice } from "@/lib/whereToMove/notice";
-import { getOrCreateSettings, lastNotifyLog, listDeals } from "@/lib/whereToMove/repo";
+import { getOrCreateSettings, lastNotifyLog, listComplexes, listDeals } from "@/lib/whereToMove/repo";
 import DealBoard, { type Deal } from "./DealBoard";
 
 export const metadata: Metadata = {
@@ -12,6 +15,14 @@ export const metadata: Metadata = {
 
 const KST_DATE = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Seoul" });
 
+type Site = { status: "pending" | "ok" | "notfound"; lat: number | null; lng: number | null };
+
+/** 단지 좌표가 있으면 직장까지 어림값을 붙인다. 없으면 null 과 좌표 상태. */
+function commuteOf(site: Site | undefined, wp: { lat: number; lng: number }) {
+  if (!site || site.status !== "ok" || site.lat === null || site.lng === null) return { commute: null, site: site?.status ?? ("pending" as const) };
+  return { commute: { ...estimateCommute(straightKm({ lat: site.lat, lng: site.lng }, wp)), lat: site.lat, lng: site.lng }, site: "ok" as const };
+}
+
 export default async function Page() {
   const user = await requireUser();
   const { data: settings, valid, notifyEnabled } = await getOrCreateSettings(user.id);
@@ -19,19 +30,33 @@ export default async function Page() {
   from.setMonth(from.getMonth() - 12);
   const stored = await listDeals(settings.regions.map((r) => r.sggCd), { dealDateFrom: KST_DATE.format(from) });
   const p = deriveParams(settings);
+  const wp = settings.workplaces[0];
+  // 임시(WTM_KAKAO_LIVE): 좌표가 없는 직장·단지는 카카오로 그때그때 구한다. 결과는 저장하지 않는다.
+  const live = kakaoLiveKey();
+  let wpAt = wp && wp.lat !== undefined && wp.lng !== undefined ? { lat: wp.lat, lng: wp.lng } : null;
+  if (wp && !wpAt && live) {
+    wpAt = await kakaoAddress(wp.address, live).catch((e) => { console.error("[whereToMove kakao live]", e instanceof Error ? e.message : e); return null; });
+  }
+  const sites = wpAt ? await listComplexes(settings.regions.map((r) => r.sggCd)) : new Map<string, Site>();
+  const shown = filterDeals(settings, stored);
+  if (wpAt && live) {
+    const label = (sggCd: string) => settings.regions.find((r) => r.sggCd === sggCd)?.label ?? "";
+    await fillLiveSites(sites, shown.map((d) => ({ key: complexKey(d), q: { label: label(d.sggCd), dong: d.dong, apt: d.apt } })), (n) => kakaoComplex(n.q, live));
+  }
 
-  const deals: Deal[] = filterDeals(settings, stored).map((d) => {
+  const deals: Deal[] = shown.map((d) => {
     const e = evaluateDeal(p, d);
     return {
       recorded: KST_DATE.format(d.firstSeenAt), type: d.type, sggCd: d.sggCd,
       region: settings.regions.find((r) => r.sggCd === d.sggCd)?.label ?? "", dong: d.dong, apt: d.apt, area: d.area, floor: d.floor,
       date: d.date, amount: d.amount, rent: d.rent, loan: Math.round(e.loan),
       monthly: Math.round(e.monthly * 10) / 10, margin: Math.round(e.margin * 10) / 10, ok: e.ok, reason: e.reasons.join(", "),
+      ...(wpAt ? commuteOf(sites.get(complexKey(d)), wpAt) : {}),
     };
   });
 
   const log = await lastNotifyLog(user.id);
   const notice = buildNotice({ settingsValid: valid, notifyEnabled, lastLog: log });
 
-  return <DealBoard deals={deals} regions={settings.regions} notice={notice} />;
+  return <DealBoard deals={deals} regions={settings.regions} notice={notice} workplace={wp && wpAt ? { label: wp.label, ...wpAt } : undefined} />;
 }

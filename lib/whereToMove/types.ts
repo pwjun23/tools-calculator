@@ -18,6 +18,12 @@ export interface MolitDeal {
   rent: number;
   renewal: boolean;
   cancelled: boolean;
+  /** 국토부 단지 일련번호(예: 41570-998). 수집 때만 있고 DB 거래 표에는 없다. */
+  aptSeq?: string;
+  /** 시·도부터 쓴 도로명 주소. 없으면 "". */
+  roadAddr?: string;
+  /** 시·도부터 쓴 지번 주소. 없으면 "". */
+  jibunAddr?: string;
 }
 
 /** DB에 저장된 거래 */

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authClient } from '@/lib/whereToMove/auth-client';
 import { groupDongs, toggleDong } from '@/lib/whereToMove/board';
+import { commuteHelp, kakaoRouteUrl, kmLabel, passesCommute, type CommuteEstimate, type CommuteMode } from '@/lib/whereToMove/commute';
 import { umdOf } from '@/lib/whereToMove/judge';
 import ThemeToggle from '@/app/components/ThemeToggle';
 import s from './board.module.css';
@@ -13,6 +14,8 @@ export type Deal = {
   recorded: string; type: '매매' | '전세' | '월세'; sggCd: string; region: string; dong: string; apt: string; area: number; floor: number | string;
   date: string; amount: number; rent: number; loan: number; monthly: number; margin: number; ok: boolean;
   reason?: string;
+  commute?: (CommuteEstimate & { lat: number; lng: number }) | null;
+  site?: 'ok' | 'pending' | 'notfound';
 };
 
 const TYPES = ['매매', '전세', '월세'] as const;
@@ -27,9 +30,25 @@ const won = (v: number) => (v >= 10000 ? `${Math.round(v / 100) / 100}억` : `${
 // 실거래 API에는 단지 번호가 없어 단지명 검색으로 연결한다. 네이버 검색은 맨 위에 네이버 부동산 단지 카드가 뜬다.
 const naverUrl = (d: Deal) => `https://m.search.naver.com/search.naver?query=${encodeURIComponent(`${d.region} ${d.dong} ${d.apt}`)}`;
 const hogangUrl = (d: Deal) => `https://hogangnono.com/search?q=${encodeURIComponent(`${d.region} ${d.dong} ${d.apt}`)}`;
+const HELP = commuteHelp();
+
+/** 누르면 펼치고 다시 누르면 닫는 설명. 카드 전체 링크(::after) 위에 오도록 z-index 를 준다. */
+function CommuteInfo() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className={s.info} aria-expanded={open} aria-label="통근 시간 계산 방법" onClick={() => setOpen(o => !o)}>ⓘ</button>
+      {open && <div className={s.help}>{HELP.map((t, i) => <p key={i}>{t}</p>)}</div>}
+    </>
+  );
+}
+
 const price = (d: Deal) => (d.type === '월세' ? `${won(d.amount)} / ${d.rent}만` : won(d.amount));
 
-export default function DealBoard({ deals, regions, notice }: { deals: Deal[]; regions: { sggCd: string; label: string; dongs: string[] }[]; notice?: { text: string; relogin: boolean } }) {
+export default function DealBoard({ deals, regions, notice, workplace }: {
+  deals: Deal[]; regions: { sggCd: string; label: string; dongs: string[] }[]; notice?: { text: string; relogin: boolean };
+  workplace?: { label: string; lat: number; lng: number };
+}) {
   const router = useRouter();
   const [q, setQ] = useState('');
   const [dongs, setDongs] = useState<string[]>([]); // 'sggCd:동' 목록. 비어 있으면 전체.
@@ -38,6 +57,8 @@ export default function DealBoard({ deals, regions, notice }: { deals: Deal[]; r
   const [minArea, setMinArea] = useState('');
   const [maxMonthly, setMaxMonthly] = useState('');
   const [sort, setSort] = useState<(typeof SORTS)[number]['v']>('date');
+  const [commuteMode, setCommuteMode] = useState<CommuteMode>('off');
+  const [commuteMax, setCommuteMax] = useState(60);
 
   const dongGroups = useMemo(() => groupDongs(regions), [regions]);
   const multi = regions.length > 1;
@@ -50,6 +71,7 @@ export default function DealBoard({ deals, regions, notice }: { deals: Deal[]; r
       (!okOnly || d.ok) &&
       (!minArea || d.area >= Number(minArea)) &&
       (!maxMonthly || d.monthly <= Number(maxMonthly)) &&
+      passesCommute(d.commute ?? null, commuteMode, commuteMax) &&
       (!kw || d.apt.replace(/\s/g, '').includes(kw)));
     const by: Record<string, (a: Deal, b: Deal) => number> = {
       date: (a, b) => (a.date < b.date ? 1 : -1),
@@ -58,7 +80,7 @@ export default function DealBoard({ deals, regions, notice }: { deals: Deal[]; r
       area: (a, b) => b.area - a.area,
     };
     return out.sort(by[sort]);
-  }, [deals, q, dongs, types, okOnly, minArea, maxMonthly, sort]);
+  }, [deals, q, dongs, types, okOnly, minArea, maxMonthly, commuteMode, commuteMax, sort]);
 
   const toggleType = (t: string) =>
     setTypes(cur => (cur.includes(t) ? cur.filter(x => x !== t) : [...cur, t]));
@@ -117,6 +139,20 @@ export default function DealBoard({ deals, regions, notice }: { deals: Deal[]; r
             {SORTS.map(o => <option key={o.v} value={o.v}>{o.t}</option>)}
           </select>
         </div>
+        {workplace && (
+          <div className={s.row}>
+            <span className={s.muted}>통근</span>
+            <select className={s.small} value={commuteMode} onChange={e => setCommuteMode(e.target.value as CommuteMode)}>
+              <option value="off">전체</option>
+              <option value="transit">🚇 대중교통</option>
+              <option value="car">🚗 자가용</option>
+            </select>
+            <select className={s.small} value={commuteMax} disabled={commuteMode === 'off'} onChange={e => setCommuteMax(Number(e.target.value))}>
+              {[30, 45, 60, 90].map(m => <option key={m} value={m}>{m}분 이내</option>)}
+            </select>
+            <CommuteInfo />
+          </div>
+        )}
       </section>
 
       <p className={s.count}>{rows.length}건</p>
@@ -139,6 +175,14 @@ export default function DealBoard({ deals, regions, notice }: { deals: Deal[]; r
                 ? <span className={d.ok ? s.plus : s.muted}>월 예산 여유 +{d.margin}만</span>
                 : <span className={s.minus}>월 예산 초과 {Math.abs(d.margin)}만</span>}
             </div>
+            {workplace && (
+              <div className={s.commute}>
+                {d.commute
+                  ? <span>{workplace.label} {kmLabel(d.commute.km)} · 🚇 약 {d.commute.transit[0]}~{d.commute.transit[1]}분 · 🚗 약 {d.commute.car[0]}~{d.commute.car[1]}분</span>
+                  : <span className={s.muted}>{workplace.label}까지 거리: {d.site === 'notfound' ? '위치 확인 안 됨' : '위치 확인 중'}</span>}
+                <CommuteInfo />
+              </div>
+            )}
             {!d.ok && (
               <p className={s.reason}>
                 부적합 사유: {d.reason || '조건 미달'}
@@ -148,6 +192,12 @@ export default function DealBoard({ deals, regions, notice }: { deals: Deal[]; r
             <div className={s.links}>
               <span>네이버 부동산 ↗</span>
               <a href={hogangUrl(d)} target="_blank" rel="noopener noreferrer">호갱노노 ↗</a>
+              {workplace && d.commute && (
+                <>
+                  <a href={kakaoRouteUrl('traffic', { name: d.apt, lat: d.commute.lat, lng: d.commute.lng }, { name: workplace.label, lat: workplace.lat, lng: workplace.lng })} target="_blank" rel="noopener noreferrer">🚇 길찾기 ↗</a>
+                  <a href={kakaoRouteUrl('car', { name: d.apt, lat: d.commute.lat, lng: d.commute.lng }, { name: workplace.label, lat: workplace.lat, lng: workplace.lng })} target="_blank" rel="noopener noreferrer">🚗 길찾기 ↗</a>
+                </>
+              )}
             </div>
           </li>
         ))}

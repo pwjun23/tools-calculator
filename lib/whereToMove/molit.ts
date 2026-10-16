@@ -1,4 +1,5 @@
 import { XMLParser } from "fast-xml-parser";
+import { addrPrefix } from "./regions";
 import type { DealType, MolitDeal } from "./types";
 
 export const TRADE_URL = "https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev";
@@ -38,24 +39,46 @@ export function dealKey(d: Pick<MolitDeal, "sggCd" | "type" | "apt" | "dong" | "
   return [d.sggCd, d.type, d.apt, d.dong, d.area, d.floor, d.date, d.amount, d.rent].join("|");
 }
 
-function build(it: Record<string, string>, sggCd: string, type: DealType, amount: number, rent: number, renewal: boolean, cancelled: boolean): MolitDeal | null {
+const num = (s: string | undefined) => parseInt(s ?? "", 10) || 0;
+const join = (...parts: (string | undefined)[]) => parts.filter(Boolean).join(" ");
+
+/** 단지 좌표를 찾을 주소. 도로명은 거래 종류마다 필드가 달라 road 로 받는다. */
+function siteOf(it: Record<string, string>, sggCd: string, road: string) {
+  const prefix = addrPrefix(sggCd);
+  return {
+    aptSeq: it.aptSeq ?? "",
+    roadAddr: road ? join(prefix, road) : "",
+    jibunAddr: it.jibun ? join(prefix, it.umdNm, it.jibun) : "",
+  };
+}
+
+const tradeRoad = (it: Record<string, string>) => {
+  if (!it.roadNm || !num(it.roadNmBonbun)) return "";
+  const bu = num(it.roadNmBubun);
+  return `${it.roadNm} ${num(it.roadNmBonbun)}${bu ? `-${bu}` : ""}`;
+};
+
+function build(
+  it: Record<string, string>, sggCd: string, type: DealType, amount: number, rent: number, renewal: boolean, cancelled: boolean,
+  site: ReturnType<typeof siteOf>,
+): MolitDeal | null {
   if (!it.umdNm) return null;
   const areaRaw = parseFloat(it.excluUseAr) || 0;
   const base = {
     type, sggCd, dong: it.umdNm, apt: it.aptNm ?? "", area: Math.round(areaRaw), areaRaw,
     floor: it.floor ?? "", date: dealDate(it.dealYear, it.dealMonth, it.dealDay), amount, rent, renewal, cancelled,
   };
-  return { ...base, key: dealKey(base) };
+  return { ...base, key: dealKey(base), ...site };
 }
 
 export function normalizeTrade(it: Record<string, string>, sggCd: string): MolitDeal | null {
   const cancelled = it.cdealType === "O" || (it.cdealDay ?? "").length > 0;
-  return build(it, sggCd, "매매", parseMoney(it.dealAmount), 0, false, cancelled);
+  return build(it, sggCd, "매매", parseMoney(it.dealAmount), 0, false, cancelled, siteOf(it, sggCd, tradeRoad(it)));
 }
 
 export function normalizeRent(it: Record<string, string>, sggCd: string): MolitDeal | null {
   const rent = parseMoney(it.monthlyRent);
-  return build(it, sggCd, rent > 0 ? "월세" : "전세", parseMoney(it.deposit), rent, (it.contractType ?? "").includes("갱신"), false);
+  return build(it, sggCd, rent > 0 ? "월세" : "전세", parseMoney(it.deposit), rent, (it.contractType ?? "").includes("갱신"), false, siteOf(it, sggCd, (it.roadnm ?? "").trim()));
 }
 
 /** KST 기준 이번 달부터 n개월의 YYYYMM. */

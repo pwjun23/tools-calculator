@@ -76,3 +76,29 @@ describe("regions 개수", () => {
     if (!p.ok) expect(Object.keys(p.errors)).toContain("regions");
   });
 });
+
+describe("workplaces", () => {
+  const wp = { label: "직장", address: "가상시 가상로 1", lat: 37.5, lng: 127 };
+  it("기본값은 빈 목록", () => expect(DEFAULT_SETTINGS.workplaces).toEqual([]));
+  it("1개 허용", () => expect(parseSettings({ ...DEFAULT_SETTINGS, workplaces: [wp] }).ok).toBe(true));
+  it("2개 거부", () => expect(parseSettings({ ...DEFAULT_SETTINGS, workplaces: [wp, wp] }).ok).toBe(false));
+  it("한국 밖 좌표 거부", () => {
+    const r = parseSettings({ ...DEFAULT_SETTINGS, workplaces: [{ ...wp, lat: 10 }] });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(Object.keys(r.errors)).toContain("workplaces.0.lat");
+  });
+  it("좌표 없는 직장도 허용한다(카카오 실시간 임시 방식)", () => {
+    const { lat: _a, lng: _b, ...noCoord } = wp;
+    expect(parseSettings({ ...DEFAULT_SETTINGS, workplaces: [noCoord] }).ok).toBe(true);
+  });
+  it("위도·경도 중 하나만 있으면 거부", () => {
+    const { lng: _b, ...latOnly } = wp;
+    expect(parseSettings({ ...DEFAULT_SETTINGS, workplaces: [latOnly] }).ok).toBe(false);
+  });
+  it("예전 설정(필드 없음)은 빈 목록으로 읽고 valid 를 유지한다", () => {
+    const { workplaces: _, ...old } = DEFAULT_SETTINGS;
+    const r = readStoredSettings(old);
+    expect(r.valid).toBe(true);
+    expect(r.settings.workplaces).toEqual([]);
+  });
+});

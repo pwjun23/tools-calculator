@@ -7,6 +7,7 @@ import { deriveParams, priceLimits } from "@/lib/whereToMove/judge";
 import type { Loan, Settings } from "@/lib/whereToMove/settings";
 import { saveSettingsAction } from "./actions";
 import RegionPicker from "./RegionPicker";
+import WorkplacePicker from "./WorkplacePicker";
 
 type NumKey = { [K in keyof Settings]: Settings[K] extends number ? K : never }[keyof Settings];
 type Unit = "만원" | "%" | "년" | "㎡";
@@ -84,6 +85,7 @@ export default function SettingsForm({ initial, initialNotify }: { initial: Sett
       </header>
 
       <RegionPicker value={s.regions} errors={errors} onChange={(regions) => { setSaved(false); setS({ ...s, regions }); }} />
+      <WorkplacePicker value={s.workplaces} errors={errors} onChange={(workplaces) => { setSaved(false); setS({ ...s, workplaces }); }} />
 
       {SECTIONS.map((sec) => (
         <section key={sec.title} className="mb-6">

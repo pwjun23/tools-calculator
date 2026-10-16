@@ -20,7 +20,7 @@
 /* 카드 전체를 네이버 링크로 덮는다(stretched link). 호갱노노 링크는 위로 올려 따로 눌리게 한다. */
 .cardLink { color: inherit; text-decoration: none; }
 .cardLink::after { content: ''; position: absolute; inset: 0; border-radius: 12px; }
-.links { display: flex; gap: 14px; margin-top: 10px; font-size: .8rem; color: #1f6feb; }
+.links { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; font-size: .8rem; color: #1f6feb; }
 .links a { position: relative; z-index: 1; color: inherit; text-decoration: none; }
 .top { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
 .badge { font-size: .75rem; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
@@ -47,3 +47,9 @@
 :global(.dark) .links { color: #6ea8fe; }
 :global(.dark) .error { background: #3a1613; color: #ffb4ab; }
 .tools a { text-decoration: none; }
+.commute { position: relative; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; font-size: .85rem; }
+.info { position: relative; z-index: 1; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #1f6feb; font-size: .95rem; line-height: 1; cursor: pointer; }
+.help { position: relative; z-index: 1; flex-basis: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 8px; background: #f3f6fb; color: #333; font-size: .8rem; line-height: 1.5; }
+.help p { margin: 0 0 4px; }
+:global(.dark) .help { background: #26282c; color: #ddd; }
+:global(.dark) .info { color: #6ea8fe; }

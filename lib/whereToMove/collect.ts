@@ -16,6 +16,8 @@ export type CollectDeps = {
   loggedMonths(sggCd: string): Promise<Set<string>>;
   upsert(deals: MolitDeal[], seenAt?: (d: MolitDeal) => Date): Promise<number>;
   markCollected(sggCd: string, ym: string): Promise<void>;
+  /** 단지 좌표용 단지 목록 저장. 실패해도 거래 수집은 성공으로 둔다. */
+  seedComplexes?(deals: MolitDeal[]): Promise<void>;
 };
 
 /** 한 시·군·구를 받는다. 실패한 달은 로그를 남기지 않아 다음에 다시 받는다. */
@@ -38,6 +40,9 @@ export async function collectRegion(sggCd: string, deps: CollectDeps, opts: { no
       const first = !logged.has(ym);
       const count = await deps.upsert(deals, first ? (d) => backfillSeenAt(d.date) : undefined);
       await deps.markCollected(sggCd, ym);
+      if (deps.seedComplexes) {
+        await deps.seedComplexes(deals).catch((e) => console.error("[whereToMove complexes]", sggCd, ym, e instanceof Error ? e.message : e));
+      }
       if (!recent.includes(ym)) backfilled++;
       results.push({ ym, count });
     } catch (e) {
