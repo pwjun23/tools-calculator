@@ -28,7 +28,7 @@ const naverUrl = (d: Deal) => `https://m.search.naver.com/search.naver?query=${e
 const hogangUrl = (d: Deal) => `https://hogangnono.com/search?q=${encodeURIComponent(`${d.region} ${d.dong} ${d.apt}`)}`;
 const price = (d: Deal) => (d.type === '월세' ? `${won(d.amount)} / ${d.rent}만` : won(d.amount));
 
-export default function DealBoard({ deals, regions, subtitle, notice }: { deals: Deal[]; regions: { sggCd: string; label: string }[]; subtitle: string; notice?: { text: string; relogin: boolean } }) {
+export default function DealBoard({ deals, regions, notice }: { deals: Deal[]; regions: { sggCd: string; label: string; dongs: string[] }[]; notice?: { text: string; relogin: boolean } }) {
   const router = useRouter();
   const [q, setQ] = useState('');
   const [dong, setDong] = useState('전체'); // '전체' 또는 'sggCd:동'
@@ -38,7 +38,7 @@ export default function DealBoard({ deals, regions, subtitle, notice }: { deals:
   const [maxMonthly, setMaxMonthly] = useState('');
   const [sort, setSort] = useState<(typeof SORTS)[number]['v']>('date');
 
-  const dongGroups = useMemo(() => groupDongs(deals, regions), [deals, regions]);
+  const dongGroups = useMemo(() => groupDongs(regions), [regions]);
   const multi = regions.length > 1;
 
   const rows = useMemo(() => {
@@ -65,10 +65,7 @@ export default function DealBoard({ deals, regions, subtitle, notice }: { deals:
   return (
     <main className={s.wrap}>
       <header className={s.head}>
-        <div>
-          <h1 className={s.title}>이사 어디</h1>
-          <p className={s.sub}>{subtitle}</p>
-        </div>
+        <h1 className={s.title}>이사 어디</h1>
         <div className={s.tools}>
           <Link className={s.chip} href="/whereToMove/settings">설정</Link>
           <button type="button" className={s.chip} onClick={() => authClient.signOut().then(() => router.replace('/whereToMove/login'))}>로그아웃</button>

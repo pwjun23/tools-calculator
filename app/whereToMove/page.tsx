@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { requireUser } from "@/lib/whereToMove/current-user";
 import { deriveParams, evaluateDeal, filterDeals } from "@/lib/whereToMove/judge";
-import { regionSubtitle } from "@/lib/whereToMove/board";
 import { buildNotice } from "@/lib/whereToMove/notice";
 import { getOrCreateSettings, lastNotifyLog, listDeals } from "@/lib/whereToMove/repo";
 import DealBoard, { type Deal } from "./DealBoard";
@@ -34,6 +33,5 @@ export default async function Page() {
   const log = await lastNotifyLog(user.id);
   const notice = buildNotice({ settingsValid: valid, notifyEnabled, lastLog: log });
 
-  const regions = settings.regions.map(({ sggCd, label }) => ({ sggCd, label }));
-  return <DealBoard deals={deals} regions={regions} subtitle={regionSubtitle(settings.regions)} notice={notice} />;
+  return <DealBoard deals={deals} regions={settings.regions} notice={notice} />;
 }
