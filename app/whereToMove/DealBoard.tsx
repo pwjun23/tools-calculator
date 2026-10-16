@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authClient } from '@/lib/whereToMove/auth-client';
 import { groupDongs, toggleDong } from '@/lib/whereToMove/board';
-import { COMMUTE_CHOICES, commuteHelp, kakaoRouteUrl, kmLabel, parseCommuteChoice, passesCommute, type CommuteEstimate } from '@/lib/whereToMove/commute';
+import { TRIP_ICON, TRIP_MODES, commuteHelp, kakaoRouteUrl, kmLabel, parseTripChoice, passesTrip, tripChoices, type LatLng, type Place, type Trip } from '@/lib/whereToMove/commute';
 import { umdOf } from '@/lib/whereToMove/judge';
 import ThemeToggle from '@/app/components/ThemeToggle';
 import s from './board.module.css';
@@ -14,7 +14,8 @@ export type Deal = {
   recorded: string; type: '매매' | '전세' | '월세'; sggCd: string; region: string; dong: string; apt: string; area: number; floor: number | string;
   date: string; amount: number; rent: number; loan: number; monthly: number; margin: number; ok: boolean;
   reason?: string;
-  commute?: (CommuteEstimate & { lat: number; lng: number }) | null;
+  trips?: (Trip & { id: string })[] | null;
+  pos?: LatLng;
   site?: 'ok' | 'pending' | 'notfound';
 };
 
@@ -45,9 +46,19 @@ function CommuteInfo() {
 
 const price = (d: Deal) => (d.type === '월세' ? `${won(d.amount)} / ${d.rent}만` : won(d.amount));
 
-export default function DealBoard({ deals, regions, notice, workplace }: {
+/** 한 장소 줄: `가상초 1.2km · 🚶 약 20~25분 · 🚌 약 10~15분`. */
+const tripLine = (p: Place, t: Trip) =>
+  [`${p.label} ${kmLabel(t.km)}`, ...TRIP_MODES.filter(m => t.times[m]).map(m => `${TRIP_ICON[m]} 약 ${t.times[m]![0]}~${t.times[m]![1]}분`)].join(' · ');
+
+/** 길찾기 링크. 직장은 대중교통·자동차, 학교는 도보를 골랐으면 도보, 아니면 자동차. */
+const routeLinks = (p: Place): { by: 'traffic' | 'car' | 'walk'; text: string }[] =>
+  p.kind === 'work'
+    ? [{ by: 'traffic', text: '🚇 길찾기' }, { by: 'car', text: '🚗 길찾기' }]
+    : [{ by: p.modes.includes('walk') ? 'walk' : 'car', text: `${p.label} 길찾기` }];
+
+export default function DealBoard({ deals, regions, notice, places = [] }: {
   deals: Deal[]; regions: { sggCd: string; label: string; dongs: string[] }[]; notice?: { text: string; relogin: boolean };
-  workplace?: { label: string; lat: number; lng: number };
+  places?: Place[];
 }) {
   const router = useRouter();
   const [q, setQ] = useState('');
@@ -62,6 +73,7 @@ export default function DealBoard({ deals, regions, notice, workplace }: {
   const dongGroups = useMemo(() => groupDongs(regions), [regions]);
   const multi = regions.length > 1;
 
+  const choice = useMemo(() => parseTripChoice(commute, places), [commute, places]);
   const rows = useMemo(() => {
     const kw = q.replace(/\s/g, '');
     const out = deals.filter(d =>
@@ -70,7 +82,7 @@ export default function DealBoard({ deals, regions, notice, workplace }: {
       (!okOnly || d.ok) &&
       (!minArea || d.area >= Number(minArea)) &&
       (!maxMonthly || d.monthly <= Number(maxMonthly)) &&
-      passesCommute(d.commute ?? null, parseCommuteChoice(commute).mode, parseCommuteChoice(commute).max) &&
+      passesTrip(d.trips ?? null, choice) &&
       (!kw || d.apt.replace(/\s/g, '').includes(kw)));
     const by: Record<string, (a: Deal, b: Deal) => number> = {
       date: (a, b) => (a.date < b.date ? 1 : -1),
@@ -79,7 +91,7 @@ export default function DealBoard({ deals, regions, notice, workplace }: {
       area: (a, b) => b.area - a.area,
     };
     return out.sort(by[sort]);
-  }, [deals, q, dongs, types, okOnly, minArea, maxMonthly, commute, sort]);
+  }, [deals, q, dongs, types, okOnly, minArea, maxMonthly, choice, sort]);
 
   const toggleType = (t: string) =>
     setTypes(cur => (cur.includes(t) ? cur.filter(x => x !== t) : [...cur, t]));
@@ -138,11 +150,16 @@ export default function DealBoard({ deals, regions, notice, workplace }: {
             {SORTS.map(o => <option key={o.v} value={o.v}>{o.t}</option>)}
           </select>
         </div>
-        {workplace && (
+        {places.length > 0 && (
           <div className={s.row}>
-            <span className={s.muted}>통근</span>
-            <select className={s.small} value={commute} onChange={e => setCommute(e.target.value)}>
-              {COMMUTE_CHOICES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+            <span className={s.muted}>통근·통학</span>
+            <select className={s.small} value={choice ? commute : 'off'} onChange={e => setCommute(e.target.value)}>
+              <option value="off">전체</option>
+              {tripChoices(places).map(g => (
+                <optgroup key={g.id} label={g.label}>
+                  {g.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </optgroup>
+              ))}
             </select>
             <CommuteInfo />
           </div>
@@ -169,14 +186,22 @@ export default function DealBoard({ deals, regions, notice, workplace }: {
                 ? <span className={d.ok ? s.plus : s.muted}>월 예산 여유 +{d.margin}만</span>
                 : <span className={s.minus}>월 예산 초과 {Math.abs(d.margin)}만</span>}
             </div>
-            {workplace && (
-              <div className={s.commute}>
-                {d.commute
-                  ? <span>{workplace.label} {kmLabel(d.commute.km)} · 🚇 약 {d.commute.transit[0]}~{d.commute.transit[1]}분 · 🚗 약 {d.commute.car[0]}~{d.commute.car[1]}분</span>
-                  : <span className={s.muted}>{workplace.label}까지 거리: {d.site === 'notfound' ? '위치 확인 안 됨' : '위치 확인 중'}</span>}
-                <CommuteInfo />
-              </div>
-            )}
+            {places.length > 0 && (d.trips
+              ? places.map((p, j) => {
+                  const t = d.trips!.find(x => x.id === p.id);
+                  return t && (
+                    <div key={p.id} className={s.commute}>
+                      <span>{tripLine(p, t)}</span>
+                      {j === 0 && <CommuteInfo />}
+                    </div>
+                  );
+                })
+              : (
+                <div className={s.commute}>
+                  <span className={s.muted}>{places.length === 1 ? `${places[0].label}까지` : '직장·학교까지'} 거리: {d.site === 'notfound' ? '위치 확인 안 됨' : '위치 확인 중'}</span>
+                  <CommuteInfo />
+                </div>
+              ))}
             {!d.ok && (
               <p className={s.reason}>
                 부적합 사유: {d.reason || '조건 미달'}
@@ -186,12 +211,9 @@ export default function DealBoard({ deals, regions, notice, workplace }: {
             <div className={s.links}>
               <span>네이버 부동산 ↗</span>
               <a href={hogangUrl(d)} target="_blank" rel="noopener noreferrer">호갱노노 ↗</a>
-              {workplace && d.commute && (
-                <>
-                  <a href={kakaoRouteUrl('traffic', { name: d.apt, lat: d.commute.lat, lng: d.commute.lng }, { name: workplace.label, lat: workplace.lat, lng: workplace.lng })} target="_blank" rel="noopener noreferrer">🚇 길찾기 ↗</a>
-                  <a href={kakaoRouteUrl('car', { name: d.apt, lat: d.commute.lat, lng: d.commute.lng }, { name: workplace.label, lat: workplace.lat, lng: workplace.lng })} target="_blank" rel="noopener noreferrer">🚗 길찾기 ↗</a>
-                </>
-              )}
+              {d.pos && places.flatMap(p => routeLinks(p).map(r => (
+                <a key={`${p.id}-${r.by}`} href={kakaoRouteUrl(r.by, { name: d.apt, ...d.pos! }, { name: p.label, lat: p.lat, lng: p.lng })} target="_blank" rel="noopener noreferrer">{r.text} ↗</a>
+              )))}
             </div>
           </li>
         ))}

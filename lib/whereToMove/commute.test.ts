@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COMMUTE_CHOICES, commuteHelp, estimateCommute, kakaoRouteUrl, kmLabel, parseCommuteChoice, passesCommute, straightKm } from "./commute";
+import { commuteHelp, estimateCommute, estimateModes, kakaoRouteUrl, kmLabel, parseTripChoice, passesTrip, straightKm, toggleMode, tripChoices, type Place } from "./commute";
 
 describe("straightKm", () => {
   it("위도 1도는 약 111.19km", () => {
@@ -28,7 +28,8 @@ describe("estimateCommute", () => {
 });
 
 describe("kmLabel", () => {
-  it("1km 미만", () => expect(kmLabel(0.4)).toBe("1km 미만"));
+  it("1km 미만도 소수 한 자리(가까운 학교끼리 구분)", () => expect(kmLabel(0.43)).toBe("0.4km"));
+  it("0.1km 미만", () => expect(kmLabel(0.04)).toBe("0.1km 미만"));
   it("10km 미만은 소수 한 자리", () => expect(kmLabel(3.46)).toBe("3.5km"));
   it("10km 이상은 정수", () => expect(kmLabel(14.2)).toBe("14km"));
 });
@@ -41,6 +42,8 @@ describe("commuteHelp", () => {
     expect(t).toContain("시속 25~40km");
     expect(t).toContain("시속 15~25km");
     expect(t).toContain("카카오맵");
+    expect(t).toContain("시속 3~4km");
+    expect(t).toContain("1.5~2배");
   });
 });
 
@@ -51,26 +54,82 @@ describe("kakaoRouteUrl", () => {
   });
 });
 
-describe("passesCommute", () => {
-  const e = { km: 10, car: [25, 35] as [number, number], transit: [40, 70] as [number, number] };
-  it("off 면 통과", () => expect(passesCommute(e, "off", 30)).toBe(true));
-  it("어림값이 없으면 숨기지 않는다", () => expect(passesCommute(null, "transit", 30)).toBe(true));
-  it("최솟값 기준", () => {
-    expect(passesCommute(e, "transit", 45)).toBe(true);
-    expect(passesCommute(e, "transit", 30)).toBe(false);
-    expect(passesCommute(e, "car", 30)).toBe(true);
+describe("kakaoRouteUrl walk", () => {
+  it("도보 길찾기", () => {
+    expect(kakaoRouteUrl("walk", { name: "A", lat: 37.6, lng: 126.7 }, { name: "B", lat: 37.61, lng: 126.71 })).toBe("https://map.kakao.com/link/by/walk/A,37.6,126.7/B,37.61,126.71");
   });
 });
 
-describe("통근 필터 선택지", () => {
-  it("한 칸에서 수단과 시간을 함께 고른다", () => {
-    expect(COMMUTE_CHOICES[0]).toEqual({ value: "off", label: "전체" });
-    expect(COMMUTE_CHOICES.map((c) => c.value)).toContain("transit:120");
-    expect(COMMUTE_CHOICES.map((c) => c.value)).toContain("car:60");
+describe("estimateModes", () => {
+  it("도보: 아이 걸음 시속 3~4km, 5분 단위", () => {
+    expect(estimateModes(0.6, ["walk"]).times).toEqual({ walk: [10, 15] });
+    expect(estimateModes(2, ["walk"]).times).toEqual({ walk: [40, 50] });
   });
-  it("값을 수단과 분으로 나눈다", () => {
-    expect(parseCommuteChoice("transit:90")).toEqual({ mode: "transit", max: 90 });
-    expect(parseCommuteChoice("off")).toEqual({ mode: "off", max: 0 });
-    expect(parseCommuteChoice("이상한값")).toEqual({ mode: "off", max: 0 });
+  it("아주 가까워도 최소 5분", () => expect(estimateModes(0.1, ["walk"]).times.walk).toEqual([5, 5]));
+  it("통학차량은 자가용 최솟값×1.5 ~ 최댓값×2", () => {
+    expect(estimateModes(10, ["shuttle", "car"]).times).toEqual({ shuttle: [40, 70], car: [25, 35] });
+  });
+  it("자가용·대중교통은 estimateCommute 와 같다", () => {
+    const e = estimateCommute(30);
+    expect(estimateModes(30, ["transit", "car"])).toEqual({ km: 30, times: { transit: e.transit, car: e.car } });
+  });
+  it("고른 수단만 나온다", () => expect(Object.keys(estimateModes(3, ["walk"]).times)).toEqual(["walk"]));
+});
+
+const places: Place[] = [
+  { id: "w", kind: "work", label: "직장", lat: 37.5, lng: 127, modes: ["transit", "car"] },
+  { id: "s0", kind: "school", label: "가상초", lat: 37.6, lng: 126.7, modes: ["walk", "shuttle"] },
+];
+
+describe("tripChoices", () => {
+  it("장소별 묶음: 직장 30~120분, 학교 10~30분", () => {
+    const g = tripChoices(places);
+    expect(g.map((x) => x.label)).toEqual(["직장", "가상초"]);
+    expect(g[0].options.map((o) => o.value)).toEqual([30, 45, 60, 90, 120].map((m) => `w:car:${m}`).concat([30, 45, 60, 90, 120].map((m) => `w:transit:${m}`)));
+    expect(g[1].options.map((o) => o.value)).toEqual([10, 15, 20, 30].map((m) => `s0:walk:${m}`).concat([10, 15, 20, 30].map((m) => `s0:shuttle:${m}`)));
+    expect(g[1].options[1].label).toBe("🚶 15분 이내");
+  });
+});
+
+describe("parseTripChoice", () => {
+  it("값을 장소·수단·분으로 나눈다", () => expect(parseTripChoice("s0:walk:15", places)).toEqual({ id: "s0", mode: "walk", max: 15 }));
+  it("전체·없는 장소·그 장소에 없는 수단·틀린 형식은 null", () => {
+    expect(parseTripChoice("off", places)).toBeNull();
+    expect(parseTripChoice("s3:walk:15", places)).toBeNull();
+    expect(parseTripChoice("s0:car:15", places)).toBeNull();
+    expect(parseTripChoice("s0:walk:abc", places)).toBeNull();
+  });
+});
+
+describe("passesTrip", () => {
+  const trips = [{ id: "s0", km: 1, times: { walk: [20, 25] as [number, number] } }];
+  it("최솟값 기준", () => {
+    expect(passesTrip(trips, { id: "s0", mode: "walk", max: 20 })).toBe(true);
+    expect(passesTrip(trips, { id: "s0", mode: "walk", max: 15 })).toBe(false);
+  });
+  it("전체·어림값 없음·그 장소 없음은 통과", () => {
+    expect(passesTrip(trips, null)).toBe(true);
+    expect(passesTrip(null, { id: "s0", mode: "walk", max: 10 })).toBe(true);
+    expect(passesTrip(trips, { id: "w", mode: "car", max: 10 })).toBe(true);
+  });
+});
+
+describe("toggleMode", () => {
+  it("켜고 끄며 표시 순서를 지킨다", () => {
+    expect(toggleMode(["car"], "walk")).toEqual(["walk", "car"]);
+    expect(toggleMode(["walk", "car"], "walk")).toEqual(["car"]);
+  });
+  it("마지막 하나는 끄지 않는다", () => expect(toggleMode(["walk"], "walk")).toEqual(["walk"]));
+});
+
+describe("tripChoices 장소 구분", () => {
+  it("묶음마다 장소 id 를 주고, 같은 이름이면 번호를 붙인다", () => {
+    const two: Place[] = [
+      { id: "s0", kind: "school", label: "학교", lat: 37.6, lng: 126.7, modes: ["walk"] },
+      { id: "s1", kind: "school", label: "학교", lat: 37.61, lng: 126.71, modes: ["walk"] },
+    ];
+    const g = tripChoices(two);
+    expect(g.map((x) => x.id)).toEqual(["s0", "s1"]);
+    expect(g.map((x) => x.label)).toEqual(["학교", "학교 (2)"]);
   });
 });

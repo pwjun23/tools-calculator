@@ -77,6 +77,30 @@ describe("regions 개수", () => {
   });
 });
 
+describe("schools", () => {
+  const sc = { label: "가상초", address: "가상시 가상로 9", lat: 37.6, lng: 126.7, modes: ["walk", "shuttle"] };
+  it("기본값은 빈 목록", () => expect(DEFAULT_SETTINGS.schools).toEqual([]));
+  it("0·4곳 허용, 5곳 거부", () => {
+    expect(parseSettings({ ...DEFAULT_SETTINGS, schools: [] }).ok).toBe(true);
+    expect(parseSettings({ ...DEFAULT_SETTINGS, schools: [sc, sc, sc, sc] }).ok).toBe(true);
+    expect(parseSettings({ ...DEFAULT_SETTINGS, schools: [sc, sc, sc, sc, sc] }).ok).toBe(false);
+  });
+  it("수단: 빈 목록·중복·모르는 값 거부", () => {
+    for (const modes of [[], ["walk", "walk"], ["bike"]]) expect(parseSettings({ ...DEFAULT_SETTINGS, schools: [{ ...sc, modes }] }).ok).toBe(false);
+  });
+  it("좌표 없이 허용, 하나만 있으면 거부", () => {
+    const { lat: _a, lng: _b, ...noCoord } = sc;
+    expect(parseSettings({ ...DEFAULT_SETTINGS, schools: [noCoord] }).ok).toBe(true);
+    expect(parseSettings({ ...DEFAULT_SETTINGS, schools: [{ ...noCoord, lat: 37.6 }] }).ok).toBe(false);
+  });
+  it("예전 설정(필드 없음)은 빈 목록, valid 유지", () => {
+    const { schools: _s, ...old } = DEFAULT_SETTINGS;
+    const r = readStoredSettings(old);
+    expect(r.valid).toBe(true);
+    expect(r.settings.schools).toEqual([]);
+  });
+});
+
 describe("workplaces", () => {
   const wp = { label: "직장", address: "가상시 가상로 1", lat: 37.5, lng: 127 };
   it("기본값은 빈 목록", () => expect(DEFAULT_SETTINGS.workplaces).toEqual([]));
