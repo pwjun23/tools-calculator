@@ -53,3 +53,10 @@
 .help p { margin: 0 0 4px; }
 :global(.dark) .help { background: #26282c; color: #ddd; }
 :global(.dark) .info { color: #6ea8fe; }
+.loading { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 64px 0; color: #6b6b70; }
+.loading p { margin: 0; }
+.spinner { width: 32px; height: 32px; border: 3px solid #d6dbe3; border-top-color: #1f6feb; border-radius: 50%; animation: wtm-spin .8s linear infinite; }
+@keyframes wtm-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
+:global(.dark) .spinner { border-color: #3a3d42; border-top-color: #6ea8fe; }
+:global(.dark) .loading { color: #a1a1a6; }
