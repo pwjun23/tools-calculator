@@ -59,6 +59,19 @@ export function kakaoRouteUrl(by: "traffic" | "car", from: LatLng & { name: stri
 }
 
 /** 통근 필터. 어림 범위의 최솟값 기준이고, 어림값이 없으면 숨기지 않는다. */
+/** 통근 필터 한 칸: 수단과 시간을 함께 고른다. 김포→서울처럼 먼 곳도 고를 수 있게 120분까지 둔다. */
+const LIMITS = [30, 45, 60, 90, 120];
+export const COMMUTE_CHOICES: { value: string; label: string }[] = [
+  { value: "off", label: "전체" },
+  ...LIMITS.map((m) => ({ value: `transit:${m}`, label: `🚇 ${m}분 이내` })),
+  ...LIMITS.map((m) => ({ value: `car:${m}`, label: `🚗 ${m}분 이내` })),
+];
+
+export function parseCommuteChoice(v: string): { mode: CommuteMode; max: number } {
+  const [mode, max] = v.split(":");
+  return (mode === "transit" || mode === "car") && Number(max) > 0 ? { mode, max: Number(max) } : { mode: "off", max: 0 };
+}
+
 export function passesCommute(c: CommuteEstimate | null, mode: CommuteMode, maxMin: number): boolean {
   if (mode === "off" || !c) return true;
   return c[mode][0] <= maxMin;

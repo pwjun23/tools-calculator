@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authClient } from '@/lib/whereToMove/auth-client';
 import { groupDongs, toggleDong } from '@/lib/whereToMove/board';
-import { commuteHelp, kakaoRouteUrl, kmLabel, passesCommute, type CommuteEstimate, type CommuteMode } from '@/lib/whereToMove/commute';
+import { COMMUTE_CHOICES, commuteHelp, kakaoRouteUrl, kmLabel, parseCommuteChoice, passesCommute, type CommuteEstimate } from '@/lib/whereToMove/commute';
 import { umdOf } from '@/lib/whereToMove/judge';
 import ThemeToggle from '@/app/components/ThemeToggle';
 import s from './board.module.css';
@@ -57,8 +57,7 @@ export default function DealBoard({ deals, regions, notice, workplace }: {
   const [minArea, setMinArea] = useState('');
   const [maxMonthly, setMaxMonthly] = useState('');
   const [sort, setSort] = useState<(typeof SORTS)[number]['v']>('date');
-  const [commuteMode, setCommuteMode] = useState<CommuteMode>('off');
-  const [commuteMax, setCommuteMax] = useState(60);
+  const [commute, setCommute] = useState('off');
 
   const dongGroups = useMemo(() => groupDongs(regions), [regions]);
   const multi = regions.length > 1;
@@ -71,7 +70,7 @@ export default function DealBoard({ deals, regions, notice, workplace }: {
       (!okOnly || d.ok) &&
       (!minArea || d.area >= Number(minArea)) &&
       (!maxMonthly || d.monthly <= Number(maxMonthly)) &&
-      passesCommute(d.commute ?? null, commuteMode, commuteMax) &&
+      passesCommute(d.commute ?? null, parseCommuteChoice(commute).mode, parseCommuteChoice(commute).max) &&
       (!kw || d.apt.replace(/\s/g, '').includes(kw)));
     const by: Record<string, (a: Deal, b: Deal) => number> = {
       date: (a, b) => (a.date < b.date ? 1 : -1),
@@ -80,7 +79,7 @@ export default function DealBoard({ deals, regions, notice, workplace }: {
       area: (a, b) => b.area - a.area,
     };
     return out.sort(by[sort]);
-  }, [deals, q, dongs, types, okOnly, minArea, maxMonthly, commuteMode, commuteMax, sort]);
+  }, [deals, q, dongs, types, okOnly, minArea, maxMonthly, commute, sort]);
 
   const toggleType = (t: string) =>
     setTypes(cur => (cur.includes(t) ? cur.filter(x => x !== t) : [...cur, t]));
@@ -142,13 +141,8 @@ export default function DealBoard({ deals, regions, notice, workplace }: {
         {workplace && (
           <div className={s.row}>
             <span className={s.muted}>통근</span>
-            <select className={s.small} value={commuteMode} onChange={e => setCommuteMode(e.target.value as CommuteMode)}>
-              <option value="off">전체</option>
-              <option value="transit">🚇 대중교통</option>
-              <option value="car">🚗 자가용</option>
-            </select>
-            <select className={s.small} value={commuteMax} disabled={commuteMode === 'off'} onChange={e => setCommuteMax(Number(e.target.value))}>
-              {[30, 45, 60, 90].map(m => <option key={m} value={m}>{m}분 이내</option>)}
+            <select className={s.small} value={commute} onChange={e => setCommute(e.target.value)}>
+              {COMMUTE_CHOICES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
             <CommuteInfo />
           </div>

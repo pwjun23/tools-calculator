@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { commuteHelp, estimateCommute, kakaoRouteUrl, kmLabel, passesCommute, straightKm } from "./commute";
+import { COMMUTE_CHOICES, commuteHelp, estimateCommute, kakaoRouteUrl, kmLabel, parseCommuteChoice, passesCommute, straightKm } from "./commute";
 
 describe("straightKm", () => {
   it("위도 1도는 약 111.19km", () => {
@@ -59,5 +59,18 @@ describe("passesCommute", () => {
     expect(passesCommute(e, "transit", 45)).toBe(true);
     expect(passesCommute(e, "transit", 30)).toBe(false);
     expect(passesCommute(e, "car", 30)).toBe(true);
+  });
+});
+
+describe("통근 필터 선택지", () => {
+  it("한 칸에서 수단과 시간을 함께 고른다", () => {
+    expect(COMMUTE_CHOICES[0]).toEqual({ value: "off", label: "전체" });
+    expect(COMMUTE_CHOICES.map((c) => c.value)).toContain("transit:120");
+    expect(COMMUTE_CHOICES.map((c) => c.value)).toContain("car:60");
+  });
+  it("값을 수단과 분으로 나눈다", () => {
+    expect(parseCommuteChoice("transit:90")).toEqual({ mode: "transit", max: 90 });
+    expect(parseCommuteChoice("off")).toEqual({ mode: "off", max: 0 });
+    expect(parseCommuteChoice("이상한값")).toEqual({ mode: "off", max: 0 });
   });
 });
