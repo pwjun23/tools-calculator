@@ -25,7 +25,7 @@ export async function GET(request: Request) {
       const judged = fresh.map((d) => ({ ...d, ...evaluateDeal(p, d) }));
       newCount = judged.length;
       okCount = judged.filter((d) => d.ok).length;
-      const text = buildWeeklyMessage(t.data.regions[0].label, judged);
+      const text = buildWeeklyMessage(judged);
 
       const accountId = await kakaoAccountId(t.userId);
       if (!accountId) throw new Error("카카오 계정 연결이 없습니다");

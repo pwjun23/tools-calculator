@@ -4,11 +4,12 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authClient } from '@/lib/whereToMove/auth-client';
+import { groupDongs } from '@/lib/whereToMove/board';
 import ThemeToggle from '@/app/components/ThemeToggle';
-import s from './gimpo.module.css';
+import s from './board.module.css';
 
 export type Deal = {
-  recorded: string; type: '매매' | '전세' | '월세'; dong: string; apt: string; area: number; floor: number | string;
+  recorded: string; type: '매매' | '전세' | '월세'; sggCd: string; region: string; dong: string; apt: string; area: number; floor: number | string;
   date: string; amount: number; rent: number; loan: number; monthly: number; margin: number; ok: boolean;
   reason?: string;
 };
@@ -23,27 +24,27 @@ const SORTS = [
 
 const won = (v: number) => (v >= 10000 ? `${Math.round(v / 100) / 100}억` : `${v.toLocaleString()}만`);
 // 실거래 API에는 단지 번호가 없어 단지명 검색으로 연결한다. 네이버 검색은 맨 위에 네이버 부동산 단지 카드가 뜬다.
-const naverUrl = (d: Deal, label: string) => `https://m.search.naver.com/search.naver?query=${encodeURIComponent(`${label} ${d.dong} ${d.apt}`)}`;
-const hogangUrl = (d: Deal) => `https://hogangnono.com/search?q=${encodeURIComponent(`${d.dong} ${d.apt}`)}`;
+const naverUrl = (d: Deal) => `https://m.search.naver.com/search.naver?query=${encodeURIComponent(`${d.region} ${d.dong} ${d.apt}`)}`;
+const hogangUrl = (d: Deal) => `https://hogangnono.com/search?q=${encodeURIComponent(`${d.region} ${d.dong} ${d.apt}`)}`;
 const price = (d: Deal) => (d.type === '월세' ? `${won(d.amount)} / ${d.rent}만` : won(d.amount));
 
-export default function GimpoBoard({ deals, title, subtitle, notice }: { deals: Deal[]; title: string; subtitle: string; notice?: { text: string; relogin: boolean } }) {
-  const label = title.split(' ')[0];
+export default function DealBoard({ deals, regions, subtitle, notice }: { deals: Deal[]; regions: { sggCd: string; label: string }[]; subtitle: string; notice?: { text: string; relogin: boolean } }) {
   const router = useRouter();
   const [q, setQ] = useState('');
-  const [dong, setDong] = useState('전체');
+  const [dong, setDong] = useState('전체'); // '전체' 또는 'sggCd:동'
   const [types, setTypes] = useState<string[]>(['전세']); // 처음에는 전세만 보여 준다.
   const [okOnly, setOkOnly] = useState(true);
   const [minArea, setMinArea] = useState('');
   const [maxMonthly, setMaxMonthly] = useState('');
   const [sort, setSort] = useState<(typeof SORTS)[number]['v']>('date');
 
-  const dongs = useMemo(() => ['전체', ...Array.from(new Set(deals.map(d => d.dong)))], [deals]);
+  const dongGroups = useMemo(() => groupDongs(deals, regions), [deals, regions]);
+  const multi = regions.length > 1;
 
   const rows = useMemo(() => {
     const kw = q.replace(/\s/g, '');
     const out = deals.filter(d =>
-      (dong === '전체' || d.dong === dong) &&
+      (dong === '전체' || `${d.sggCd}:${d.dong}` === dong) &&
       types.includes(d.type) &&
       (!okOnly || d.ok) &&
       (!minArea || d.area >= Number(minArea)) &&
@@ -65,7 +66,7 @@ export default function GimpoBoard({ deals, title, subtitle, notice }: { deals: 
     <main className={s.wrap}>
       <header className={s.head}>
         <div>
-          <h1 className={s.title}>{title}</h1>
+          <h1 className={s.title}>이사 어디</h1>
           <p className={s.sub}>{subtitle}</p>
         </div>
         <div className={s.tools}>
@@ -88,10 +89,21 @@ export default function GimpoBoard({ deals, title, subtitle, notice }: { deals: 
       <section className={s.filters}>
         <input className={s.input} placeholder="단지명 검색" value={q} onChange={e => setQ(e.target.value)} />
         <div className={s.row}>
-          {dongs.map(d => (
-            <button key={d} className={`${s.chip} ${dong === d ? s.on : ''}`} onClick={() => setDong(d)}>{d}</button>
-          ))}
+          <button className={`${s.chip} ${dong === '전체' ? s.on : ''}`} onClick={() => setDong('전체')}>전체</button>
+          {!multi && dongGroups[0]?.dongs.map(d => {
+            const v = `${dongGroups[0].sggCd}:${d}`;
+            return <button key={v} className={`${s.chip} ${dong === v ? s.on : ''}`} onClick={() => setDong(v)}>{d}</button>;
+          })}
         </div>
+        {multi && dongGroups.map(g => (
+          <div key={g.sggCd} className={s.row}>
+            <span className={s.muted}>{g.label}</span>
+            {g.dongs.map(d => {
+              const v = `${g.sggCd}:${d}`;
+              return <button key={v} className={`${s.chip} ${dong === v ? s.on : ''}`} onClick={() => setDong(v)}>{d}</button>;
+            })}
+          </div>
+        ))}
         <div className={s.row}>
           {TYPES.map(t => (
             <button key={t} className={`${s.chip} ${types.includes(t) ? s.on : ''}`} onClick={() => toggleType(t)}>{t}</button>
@@ -115,12 +127,12 @@ export default function GimpoBoard({ deals, title, subtitle, notice }: { deals: 
         {rows.map((d, i) => (
           <li key={i} className={s.card}>
             <div className={s.top}>
-              <a className={s.cardLink} href={naverUrl(d, label)} target="_blank" rel="noopener noreferrer">
+              <a className={s.cardLink} href={naverUrl(d)} target="_blank" rel="noopener noreferrer">
                 <strong>{d.apt}</strong>
               </a>
               <span className={`${s.badge} ${d.ok ? s.ok : s.no}`}>{d.ok ? '적합' : '부적합'}</span>
             </div>
-            <div className={s.meta}>{d.dong} · {d.type} · {d.area}㎡ · {d.floor}층 · {d.date}</div>
+            <div className={s.meta}>{multi ? `${d.region} ${d.dong}` : d.dong} · {d.type} · {d.area}㎡ · {d.floor}층 · {d.date}</div>
             <div className={s.nums}>
               <span className={s.price}>{price(d)}</span>
               <span>월 부담 <b>{d.monthly}만</b></span>

@@ -41,7 +41,7 @@ describe("normalizeTrade", () => {
   it("매매 정규화", () => {
     const d = normalizeTrade(parseItems(wrap(tradeItem({}), 1)).rows[0], "41570")!;
     expect(d).toMatchObject({ type: "매매", sggCd: "41570", dong: "구래동", area: 85, areaRaw: 84.97, floor: "7", date: "2026-09-03", amount: 35500, rent: 0, renewal: false, cancelled: false });
-    expect(d.key).toBe("매매|가상아파트|구래동|85|7|2026-09-03|35500|0");
+    expect(d.key).toBe("41570|매매|가상아파트|구래동|85|7|2026-09-03|35500|0");
   });
   it("해제 거래는 cancelled", () => {
     const row = parseItems(wrap(tradeItem({ cdealType: "O", cdealDay: "26.09.20" }), 1)).rows[0];
@@ -84,9 +84,9 @@ describe("recentMonths", () => {
 });
 
 describe("dealKey", () => {
-  it("Apps Script 키 형식", () => {
-    expect(dealKey({ type: "월세", apt: "A", dong: "B", area: 77, floor: "11", date: "2026-09-04", amount: 10211, rent: 50 }))
-      .toBe("월세|A|B|77|11|2026-09-04|10211|50");
+  it("시·군·구 + Apps Script 키 형식", () => {
+    expect(dealKey({ sggCd: "11110", type: "월세", apt: "A", dong: "B", area: 77, floor: "11", date: "2026-09-04", amount: 10211, rent: 50 }))
+      .toBe("11110|월세|A|B|77|11|2026-09-04|10211|50");
   });
 });
 

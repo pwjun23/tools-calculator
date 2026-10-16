@@ -1,19 +1,24 @@
 import { and, desc, eq, gt, gte, inArray, sql } from "drizzle-orm";
 import { db } from "./db";
-import { account, wtmDeals, wtmNotifyLog, wtmSettings } from "./schema";
+import { account, wtmCollectLog, wtmDeals, wtmNotifyLog, wtmSettings } from "./schema";
 import { DEFAULT_SETTINGS, normalizeStoredSettings, readStoredSettings, type Settings } from "./settings";
-import { uniqueByKey } from "./molit";
+import { fetchDeals, uniqueByKey } from "./molit";
+import type { CollectDeps } from "./collect";
 import type { MolitDeal, StoredDeal } from "./types";
 
 const CHUNK = 500;
 
-/** 거래를 키 기준으로 넣는다. 이미 있으면 해제 여부와 갱신 시각만 바꾼다(first_seen_at 유지). */
-export async function upsertDeals(all: MolitDeal[]): Promise<number> {
+/**
+ * 거래를 키 기준으로 넣는다. 이미 있으면 해제 여부와 갱신 시각만 바꾼다(first_seen_at 유지).
+ * seenAt 을 주면 새 행의 first_seen_at 을 그 값으로 넣는다(처음 받는 달).
+ */
+export async function upsertDeals(all: MolitDeal[], seenAt?: (d: MolitDeal) => Date): Promise<number> {
   const deals = uniqueByKey(all);
   for (let i = 0; i < deals.length; i += CHUNK) {
     const rows = deals.slice(i, i + CHUNK).map((d) => ({
       dealKey: d.key, type: d.type, sggCd: d.sggCd, dong: d.dong, apt: d.apt, area: d.area, areaRaw: d.areaRaw,
       floor: d.floor, dealDate: d.date, amount: d.amount, rent: d.rent, renewal: d.renewal, cancelled: d.cancelled,
+      ...(seenAt ? { firstSeenAt: seenAt(d) } : {}),
     }));
     await db
       .insert(wtmDeals)
@@ -93,4 +98,21 @@ export async function allRegionSggCds(): Promise<string[]> {
   const set = new Set<string>(DEFAULT_SETTINGS.regions.map((r) => r.sggCd));
   for (const r of rows) for (const reg of normalizeStoredSettings(r.data).regions) set.add(reg.sggCd);
   return [...set];
+}
+
+export async function loggedMonths(sggCd: string): Promise<Set<string>> {
+  const rows = await db.select({ ym: wtmCollectLog.ym }).from(wtmCollectLog).where(eq(wtmCollectLog.sggCd, sggCd));
+  return new Set(rows.map((r) => r.ym));
+}
+
+export async function markCollected(sggCd: string, ym: string): Promise<void> {
+  await db
+    .insert(wtmCollectLog)
+    .values({ sggCd, ym })
+    .onConflictDoUpdate({ target: [wtmCollectLog.sggCd, wtmCollectLog.ym], set: { collectedAt: sql`now()` } });
+}
+
+/** collectRegion 에 넘길 실제 의존성(국토부 API + DB). */
+export function collectDeps(keys: { trade: string; rent: string }): CollectDeps {
+  return { fetchMonth: (sggCd, ym) => fetchDeals(sggCd, ym, keys), loggedMonths, upsert: upsertDeals, markCollected };
 }

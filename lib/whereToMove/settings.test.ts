@@ -64,3 +64,15 @@ describe("readStoredSettings", () => {
     expect(readStoredSettings(null)).toEqual({ settings: DEFAULT_SETTINGS, valid: true });
   });
 });
+
+describe("regions 개수", () => {
+  const r = (sggCd: string) => ({ sggCd, label: "가상", dongs: ["가상동"] });
+  it("0개는 실패", () => expect(parseSettings({ ...DEFAULT_SETTINGS, regions: [] }).ok).toBe(false));
+  it("5개는 통과", () => expect(parseSettings({ ...DEFAULT_SETTINGS, regions: ["11110", "11140", "11170", "11200", "11215"].map(r) }).ok).toBe(true));
+  it("6개는 실패", () => expect(parseSettings({ ...DEFAULT_SETTINGS, regions: ["11110", "11140", "11170", "11200", "11215", "11230"].map(r) }).ok).toBe(false));
+  it("같은 시·군·구 두 번은 실패", () => {
+    const p = parseSettings({ ...DEFAULT_SETTINGS, regions: [r("11110"), r("11110")] });
+    expect(p.ok).toBe(false);
+    if (!p.ok) expect(Object.keys(p.errors)).toContain("regions");
+  });
+});

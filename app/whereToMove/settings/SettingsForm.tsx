@@ -6,6 +6,7 @@ import ThemeToggle from "@/app/components/ThemeToggle";
 import { deriveParams, priceLimits } from "@/lib/whereToMove/judge";
 import type { Loan, Settings } from "@/lib/whereToMove/settings";
 import { saveSettingsAction } from "./actions";
+import RegionPicker from "./RegionPicker";
 
 type NumKey = { [K in keyof Settings]: Settings[K] extends number ? K : never }[keyof Settings];
 type Unit = "만원" | "%" | "년" | "㎡";
@@ -45,6 +46,7 @@ export default function SettingsForm({ initial, initialNotify }: { initial: Sett
   const [notify, setNotify] = useState(initialNotify);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
+  const [collecting, setCollecting] = useState(false);
   const [pending, start] = useTransition();
 
   const derived = useMemo(() => deriveParams(s), [s]);
@@ -66,7 +68,7 @@ export default function SettingsForm({ initial, initialNotify }: { initial: Sett
   const save = () =>
     start(async () => {
       const r = await saveSettingsAction({ data: s, notifyEnabled: notify });
-      if (r.ok) { setErrors({}); setSaved(true); } else { setErrors(r.errors); setSaved(false); }
+      if (r.ok) { setErrors({}); setSaved(true); setCollecting(r.collecting); } else { setErrors(r.errors); setSaved(false); }
     });
 
   const err = (path: string) => errors[path] && <span className="text-xs text-rose-600 dark:text-rose-400">{errors[path]}</span>;
@@ -74,15 +76,14 @@ export default function SettingsForm({ initial, initialNotify }: { initial: Sett
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
       <header className="mb-6 flex items-center justify-between gap-2">
-        <div>
-          <h1 className="text-xl font-bold">설정</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">지역: {s.regions[0].label} ({s.regions[0].dongs.join(" · ")})</p>
-        </div>
+        <h1 className="text-xl font-bold">설정</h1>
         <div className="flex items-center gap-2">
           <Link href="/whereToMove" className="rounded-full border border-slate-300 px-3 py-1 text-sm dark:border-slate-700">목록</Link>
           <ThemeToggle />
         </div>
       </header>
+
+      <RegionPicker value={s.regions} errors={errors} onChange={(regions) => { setSaved(false); setS({ ...s, regions }); }} />
 
       {SECTIONS.map((sec) => (
         <section key={sec.title} className="mb-6">
@@ -175,6 +176,7 @@ export default function SettingsForm({ initial, initialNotify }: { initial: Sett
         </label>
       </section>
 
+      {collecting && <p className="mb-2 text-sm text-emerald-700 dark:text-emerald-400">새 지역의 지난 12개월 거래를 받는 중입니다. 몇 분 뒤 목록에 나옵니다.</p>}
       {errors._ && <p className="mb-2 text-sm text-rose-600">{errors._}</p>}
       {Object.keys(errors).length > 0 && <p className="mb-2 text-sm text-rose-600">입력값을 확인해 주세요.</p>}
       <button type="button" onClick={save} disabled={pending} className="w-full rounded-xl bg-emerald-600 py-3 font-semibold text-white disabled:opacity-50">

@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { requireUser } from "@/lib/whereToMove/current-user";
 import { deriveParams, evaluateDeal, filterDeals } from "@/lib/whereToMove/judge";
+import { regionSubtitle } from "@/lib/whereToMove/board";
 import { buildNotice } from "@/lib/whereToMove/notice";
 import { getOrCreateSettings, lastNotifyLog, listDeals } from "@/lib/whereToMove/repo";
-import GimpoBoard, { type Deal } from "./GimpoBoard";
+import DealBoard, { type Deal } from "./DealBoard";
 
 export const metadata: Metadata = {
-  title: "이사 실거래 모아보기",
+  title: "이사 어디",
   robots: { index: false, follow: false },
 };
 
@@ -23,7 +24,8 @@ export default async function Page() {
   const deals: Deal[] = filterDeals(settings, stored).map((d) => {
     const e = evaluateDeal(p, d);
     return {
-      recorded: KST_DATE.format(d.firstSeenAt), type: d.type, dong: d.dong, apt: d.apt, area: d.area, floor: d.floor,
+      recorded: KST_DATE.format(d.firstSeenAt), type: d.type, sggCd: d.sggCd,
+      region: settings.regions.find((r) => r.sggCd === d.sggCd)?.label ?? "", dong: d.dong, apt: d.apt, area: d.area, floor: d.floor,
       date: d.date, amount: d.amount, rent: d.rent, loan: Math.round(e.loan),
       monthly: Math.round(e.monthly * 10) / 10, margin: Math.round(e.margin * 10) / 10, ok: e.ok, reason: e.reasons.join(", "),
     };
@@ -32,6 +34,6 @@ export default async function Page() {
   const log = await lastNotifyLog(user.id);
   const notice = buildNotice({ settingsValid: valid, notifyEnabled, lastLog: log });
 
-  const region = settings.regions[0];
-  return <GimpoBoard deals={deals} title={`${region.label} 실거래 모아보기`} subtitle={region.dongs.join(" · ")} notice={notice} />;
+  const regions = settings.regions.map(({ sggCd, label }) => ({ sggCd, label }));
+  return <DealBoard deals={deals} regions={regions} subtitle={regionSubtitle(settings.regions)} notice={notice} />;
 }

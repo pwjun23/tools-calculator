@@ -4,9 +4,12 @@ import { getOrCreateSettings } from "@/lib/whereToMove/repo";
 import SettingsForm from "./SettingsForm";
 
 export const metadata: Metadata = {
-  title: "설정 · 이사 실거래 모아보기",
+  title: "설정 · 이사 어디",
   robots: { index: false, follow: false },
 };
+
+// 저장 액션이 새 지역의 지난 12개월을 after() 로 받으므로 함수 시간을 늘린다.
+export const maxDuration = 300;
 
 export default async function SettingsPage() {
   const user = await requireUser();

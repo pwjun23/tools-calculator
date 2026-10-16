@@ -15,17 +15,21 @@ const loanSchema = z.object({
   repaidIfHomeSold: z.boolean(),
 });
 
+/** 한 사용자가 고를 수 있는 시·군·구 수(공공 API 호출량 보호). */
+export const MAX_REGIONS = 5;
+
 const settingsSchema = z.object({
-  // 1단계는 지역 1개만 쓴다(2단계에서 여러 개로 넓힘).
   regions: z
     .array(
       z.object({
         sggCd: z.string().regex(/^\d{5}$/),
-        label: z.string().trim().min(1).max(20),
+        label: z.string().trim().min(1).max(30),
         dongs: z.array(z.string().trim().min(1)).min(1),
       }),
     )
-    .length(1),
+    .min(1)
+    .max(MAX_REGIONS)
+    .refine((rs) => new Set(rs.map((r) => r.sggCd)).size === rs.length, { message: "같은 시·군·구를 두 번 고를 수 없습니다" }),
   cash: money,
   monthlyBudget: z.number().positive(),
   monthlyMgmt: money,
@@ -57,7 +61,7 @@ export type Loan = z.infer<typeof loanSchema>;
 
 /** 처음 로그인한 사용자의 설정. 실제 개인 값이 아닌 일반적인 출발점이다. */
 export const DEFAULT_SETTINGS: Settings = {
-  regions: [{ sggCd: "41570", label: "김포", dongs: ["구래동", "마산동", "양촌읍"] }],
+  regions: [{ sggCd: "41570", label: "경기 김포시", dongs: ["구래동", "마산동", "양촌읍"] }],
   cash: 5000,
   monthlyBudget: 150,
   monthlyMgmt: 25,

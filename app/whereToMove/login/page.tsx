@@ -3,7 +3,7 @@ import ThemeToggle from "@/app/components/ThemeToggle";
 import KakaoLoginButton from "./KakaoLoginButton";
 
 export const metadata: Metadata = {
-  title: "로그인 · 이사 실거래 모아보기",
+  title: "로그인 · 이사 어디",
   robots: { index: false, follow: false },
 };
 
@@ -12,7 +12,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <main className="mx-auto flex min-h-full w-full max-w-sm flex-1 flex-col justify-center px-4">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-bold">이사 실거래 모아보기</h1>
+        <h1 className="text-xl font-bold">이사 어디</h1>
         <ThemeToggle />
       </div>
       <KakaoLoginButton />

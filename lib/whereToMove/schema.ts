@@ -1,4 +1,4 @@
-import { boolean, date, index, integer, jsonb, pgTable, real, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, date, index, integer, jsonb, pgTable, primaryKey, real, serial, text, timestamp } from "drizzle-orm/pg-core";
 import type { Settings } from "./settings";
 import type { DealType } from "./types";
 
@@ -89,3 +89,14 @@ export const wtmNotifyLog = pgTable("wtm_notify_log", {
   status: text("status").$type<"sent" | "failed">().notNull(),
   error: text("error"),
 });
+
+/** 시·군·구 연월별 마지막 수집 시각. 로그가 없는 달은 '처음 받는 달'이다. */
+export const wtmCollectLog = pgTable(
+  "wtm_collect_log",
+  {
+    sggCd: text("sgg_cd").notNull(),
+    ym: text("ym").notNull(),
+    collectedAt: timestamp("collected_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.sggCd, t.ym] })],
+);

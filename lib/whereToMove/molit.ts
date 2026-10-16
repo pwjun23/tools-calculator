@@ -34,8 +34,8 @@ export function parseItems(xml: string): { total: number; rows: Record<string, s
 const pad2 = (n: number) => String(n).padStart(2, "0");
 const dealDate = (y: string, m: string, d: string) => `${y}-${pad2(parseInt(m, 10))}-${pad2(parseInt(d, 10))}`;
 
-export function dealKey(d: Pick<MolitDeal, "type" | "apt" | "dong" | "area" | "floor" | "date" | "amount" | "rent">): string {
-  return [d.type, d.apt, d.dong, d.area, d.floor, d.date, d.amount, d.rent].join("|");
+export function dealKey(d: Pick<MolitDeal, "sggCd" | "type" | "apt" | "dong" | "area" | "floor" | "date" | "amount" | "rent">): string {
+  return [d.sggCd, d.type, d.apt, d.dong, d.area, d.floor, d.date, d.amount, d.rent].join("|");
 }
 
 function build(it: Record<string, string>, sggCd: string, type: DealType, amount: number, rent: number, renewal: boolean, cancelled: boolean): MolitDeal | null {
@@ -93,4 +93,11 @@ export async function fetchDeals(sggCd: string, ym: string, keys: { trade: strin
 export function uniqueByKey<T extends { key: string }>(deals: T[]): T[] {
   const seen = new Set<string>();
   return deals.filter((d) => (seen.has(d.key) ? false : (seen.add(d.key), true)));
+}
+
+/** 환경변수의 공공데이터 키(매매, 전월세). 없으면 null. */
+export function collectKeys(): { trade: string; rent: string } | null {
+  const raw = process.env.DATA_GO_KR_KEY;
+  if (!raw) return null;
+  return { trade: apiKeyParam(raw), rent: apiKeyParam(process.env.DATA_GO_KR_KEY_RENT || raw) };
 }
