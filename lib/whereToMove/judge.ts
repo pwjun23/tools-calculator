@@ -107,6 +107,9 @@ export function evaluateDeal(p: JudgeParams, d: { type: DealType; amount: number
   return { ok: reasons.length === 0, loan, carry, monthly, margin: p.budget - monthly, reasons };
 }
 
+/** 국토부 API 는 읍·면 거래에 리를 붙여 준다("양촌읍 양곡리"). 설정·필터는 읍·면·동 단위라 첫 단어만 쓴다. */
+export const umdOf = (dong: string) => dong.trim().split(/\s+/)[0];
+
 /** 사용자 지역·면적·갱신 조건과 해제 여부로 거른다. */
 export function filterDeals<T extends { dong: string; areaRaw: number; renewal: boolean; cancelled: boolean; sggCd: string }>(
   s: Settings,
@@ -115,7 +118,7 @@ export function filterDeals<T extends { dong: string; areaRaw: number; renewal: 
   return deals.filter((d) => {
     if (d.cancelled) return false;
     const region = s.regions.find((r) => r.sggCd === d.sggCd);
-    if (!region || !region.dongs.includes(d.dong)) return false;
+    if (!region || !region.dongs.includes(umdOf(d.dong))) return false;
     if (s.minArea > 0 && d.areaRaw < s.minArea) return false;
     if (s.excludeRenewal && d.renewal) return false;
     return true;

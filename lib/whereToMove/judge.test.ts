@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_SETTINGS, type Settings } from "./settings";
-import { deriveParams, evaluateDeal, filterDeals, monthlyPayment, priceLimits, type JudgeParams } from "./judge";
+import { deriveParams, evaluateDeal, filterDeals, monthlyPayment, priceLimits, umdOf, type JudgeParams } from "./judge";
 
 const base: Settings = {
   ...DEFAULT_SETTINGS,
@@ -141,5 +141,18 @@ describe("filterDeals", () => {
   it("갱신 포함 설정이면 갱신 거래도 남긴다", () => {
     const s: Settings = { ...DEFAULT_SETTINGS, excludeRenewal: false };
     expect(filterDeals(s, [mk({ renewal: true })])).toHaveLength(1);
+  });
+
+  it("읍·면 거래는 리가 붙어 와도 읍·면으로 고르면 통과한다", () => {
+    const s: Settings = { ...base, minArea: 0, regions: [{ sggCd: "41570", label: "경기 김포시", dongs: ["양촌읍"] }] };
+    const out = filterDeals(s, [mk({ dong: "양촌읍 양곡리" }), mk({ dong: "양촌읍" }), mk({ dong: "통진읍 마송리" }), mk({ dong: "양촌읍내" })]);
+    expect(out.map((d) => d.dong)).toEqual(["양촌읍 양곡리", "양촌읍"]);
+  });
+});
+
+describe("umdOf", () => {
+  it("리를 떼고 읍·면·동만 남긴다", () => {
+    expect(umdOf("양촌읍 양곡리")).toBe("양촌읍");
+    expect(umdOf("구래동")).toBe("구래동");
   });
 });

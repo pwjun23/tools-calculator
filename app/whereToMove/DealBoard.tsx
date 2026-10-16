@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authClient } from '@/lib/whereToMove/auth-client';
 import { groupDongs, toggleDong } from '@/lib/whereToMove/board';
+import { umdOf } from '@/lib/whereToMove/judge';
 import ThemeToggle from '@/app/components/ThemeToggle';
 import s from './board.module.css';
 
@@ -44,7 +45,7 @@ export default function DealBoard({ deals, regions, notice }: { deals: Deal[]; r
   const rows = useMemo(() => {
     const kw = q.replace(/\s/g, '');
     const out = deals.filter(d =>
-      (!dongs.length || dongs.includes(`${d.sggCd}:${d.dong}`)) &&
+      (!dongs.length || dongs.includes(`${d.sggCd}:${umdOf(d.dong)}`)) &&
       types.includes(d.type) &&
       (!okOnly || d.ok) &&
       (!minArea || d.area >= Number(minArea)) &&
