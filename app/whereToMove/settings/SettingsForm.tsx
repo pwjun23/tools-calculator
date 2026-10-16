@@ -176,12 +176,15 @@ export default function SettingsForm({ initial, initialNotify }: { initial: Sett
         </label>
       </section>
 
-      {collecting && <p className="mb-2 text-sm text-emerald-700 dark:text-emerald-400">새 지역의 지난 12개월 거래를 받는 중입니다. 몇 분 뒤 목록에 나옵니다.</p>}
-      {errors._ && <p className="mb-2 text-sm text-rose-600">{errors._}</p>}
-      {Object.keys(errors).length > 0 && <p className="mb-2 text-sm text-rose-600">입력값을 확인해 주세요.</p>}
-      <button type="button" onClick={save} disabled={pending} className="w-full rounded-xl bg-emerald-600 py-3 font-semibold text-white disabled:opacity-50">
-        {pending ? "저장 중..." : saved ? "저장했습니다" : "저장"}
-      </button>
+      {/* 설정이 길어 저장 버튼과 안내는 화면 아래에 붙여 둔다. */}
+      <div className="sticky bottom-0 -mx-4 border-t border-slate-200 bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-slate-800">
+        {collecting && <p className="mb-2 text-sm text-emerald-700 dark:text-emerald-400">새 지역의 지난 12개월 거래를 받는 중입니다. 몇 분 뒤 목록에 나옵니다.</p>}
+        {errors._ && <p className="mb-2 text-sm text-rose-600">{errors._}</p>}
+        {Object.keys(errors).length > 0 && <p className="mb-2 text-sm text-rose-600">입력값을 확인해 주세요.</p>}
+        <button type="button" onClick={save} disabled={pending} className="w-full rounded-xl bg-emerald-600 py-3 font-semibold text-white disabled:opacity-50">
+          {pending ? "저장 중..." : saved ? "저장했습니다" : "저장"}
+        </button>
+      </div>
     </main>
   );
 }
