@@ -4,6 +4,7 @@ import { complexKey } from "@/lib/whereToMove/complexes";
 import { requireUser } from "@/lib/whereToMove/current-user";
 import { fillLiveSites, kakaoAddress, kakaoComplex, kakaoLiveKey } from "@/lib/whereToMove/kakao-live";
 import { deriveParams, evaluateDeal, filterDeals } from "@/lib/whereToMove/judge";
+import type { MonthlyCalc } from "@/lib/whereToMove/monthly-help";
 import { buildNotice } from "@/lib/whereToMove/notice";
 import { getOrCreateSettings, lastNotifyLog, listComplexes, listDeals } from "@/lib/whereToMove/repo";
 import DealBoard, { type Deal } from "./DealBoard";
@@ -70,5 +71,7 @@ export default async function Page() {
   const log = await lastNotifyLog(user.id);
   const notice = buildNotice({ settingsValid: valid, notifyEnabled, lastLog: log });
 
-  return <DealBoard deals={deals} regions={settings.regions} notice={notice} places={places} />;
+  // 월 부담 ⓘ 계산용. 거래마다 설명 문장을 보내면 목록이 커져서, 값만 한 번 보내고 화면에서 만든다.
+  const calc: MonthlyCalc = { p, rates: { mortgageRate: settings.mortgageRate, mortgageYears: settings.mortgageYears } };
+  return <DealBoard deals={deals} regions={settings.regions} notice={notice} places={places} calc={calc} />;
 }

@@ -7,6 +7,8 @@ import { authClient } from '@/lib/whereToMove/auth-client';
 import { groupDongs, readFilters, toggleDong } from '@/lib/whereToMove/board';
 import { TRIP_ICON, TRIP_MODES, commuteHelp, kakaoRouteUrl, kmLabel, parseTripChoice, passesTrip, tripChoices, type LatLng, type Place, type Trip } from '@/lib/whereToMove/commute';
 import { umdOf } from '@/lib/whereToMove/judge';
+import { naverLandUrl } from '@/lib/whereToMove/links';
+import { explainMonthly, type MonthlyCalc } from '@/lib/whereToMove/monthly-help';
 import ThemeToggle from '@/app/components/ThemeToggle';
 import s from './board.module.css';
 
@@ -31,8 +33,6 @@ const SORTS = [
 const FILTER_KEY = 'wtm.filters.v1';
 
 const won = (v: number) => (v >= 10000 ? `${Math.round(v / 100) / 100}억` : `${v.toLocaleString()}만`);
-// 실거래 API에는 단지 번호가 없어 단지명 검색으로 연결한다. 네이버 검색은 맨 위에 네이버 부동산 단지 카드가 뜬다.
-const naverUrl = (d: Deal) => `https://m.search.naver.com/search.naver?query=${encodeURIComponent(`${d.region} ${d.dong} ${d.apt}`)}`;
 const hogangUrl = (d: Deal) => `https://hogangnono.com/search?q=${encodeURIComponent(`${d.region} ${d.dong} ${d.apt}`)}`;
 const HELP = commuteHelp();
 
@@ -44,6 +44,25 @@ function CommuteInfo() {
       <button type="button" className={s.info} aria-expanded={open} aria-label="통근 시간 계산 방법" onClick={() => setOpen(o => !o)}>ⓘ</button>
       {open && <div className={s.help}>{HELP.map((t, i) => <p key={i}>{t}</p>)}</div>}
     </>
+  );
+}
+
+/** 가격·월 부담·여유 줄. 월 부담 ⓘ를 누르면 그 거래의 계산 과정을 줄 아래에 펼친다. */
+function Nums({ d, calc }: { d: Deal; calc?: MonthlyCalc }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={s.nums}>
+      <span className={s.price}>{price(d)}</span>
+      <span>
+        월 부담 <b>{d.monthly}만</b>
+        {calc && <button type="button" className={s.info} aria-expanded={open} aria-label="월 부담 계산 방법" onClick={() => setOpen(o => !o)}>ⓘ</button>}
+      </span>
+      {/* 여유는 월 예산만 본 값이다. 부적합이면 대출 조건에 걸렸을 수 있으므로 초록색을 쓰지 않는다. */}
+      {d.margin >= 0
+        ? <span className={d.ok ? s.plus : s.muted}>월 예산 여유 +{d.margin}만</span>
+        : <span className={s.minus}>월 예산 초과 {Math.abs(d.margin)}만</span>}
+      {open && calc && <div className={s.help}>{explainMonthly(calc.p, calc.rates, d).map((t, i) => <p key={i}>{t}</p>)}</div>}
+    </div>
   );
 }
 
@@ -59,9 +78,10 @@ const routeLinks = (p: Place): { by: 'traffic' | 'car' | 'walk'; text: string }[
     ? [{ by: 'traffic', text: '🚇 길찾기' }, { by: 'car', text: '🚗 길찾기' }]
     : [{ by: p.modes.includes('walk') ? 'walk' : 'car', text: `${p.label} 길찾기` }];
 
-export default function DealBoard({ deals, regions, notice, places = [] }: {
+export default function DealBoard({ deals, regions, notice, places = [], calc }: {
   deals: Deal[]; regions: { sggCd: string; label: string; dongs: string[] }[]; notice?: { text: string; relogin: boolean };
   places?: Place[];
+  calc?: MonthlyCalc;
 }) {
   const router = useRouter();
   const [q, setQ] = useState('');
@@ -203,20 +223,13 @@ export default function DealBoard({ deals, regions, notice, places = [] }: {
         {rows.map((d, i) => (
           <li key={i} className={s.card}>
             <div className={s.top}>
-              <a className={s.cardLink} href={naverUrl(d)} target="_blank" rel="noopener noreferrer">
+              <a className={s.cardLink} href={naverLandUrl(d)} target="_blank" rel="noopener noreferrer">
                 <strong>{d.apt}</strong>
               </a>
               <span className={`${s.badge} ${d.ok ? s.ok : s.no}`}>{d.ok ? '적합' : '부적합'}</span>
             </div>
             <div className={s.meta}>{multi ? `${d.region} ${d.dong}` : d.dong} · {d.type} · {d.area}㎡ · {d.floor}층 · {d.date}</div>
-            <div className={s.nums}>
-              <span className={s.price}>{price(d)}</span>
-              <span>월 부담 <b>{d.monthly}만</b></span>
-              {/* 여유는 월 예산만 본 값이다. 부적합이면 대출 조건에 걸렸을 수 있으므로 초록색을 쓰지 않는다. */}
-              {d.margin >= 0
-                ? <span className={d.ok ? s.plus : s.muted}>월 예산 여유 +{d.margin}만</span>
-                : <span className={s.minus}>월 예산 초과 {Math.abs(d.margin)}만</span>}
-            </div>
+            <Nums d={d} calc={calc} />
             {places.length > 0 && (d.trips
               ? places.map((p, j) => {
                   const t = d.trips!.find(x => x.id === p.id);

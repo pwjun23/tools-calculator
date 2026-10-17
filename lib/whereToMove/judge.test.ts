@@ -156,3 +156,15 @@ describe("umdOf", () => {
     expect(umdOf("구래동")).toBe("구래동");
   });
 });
+
+describe("evaluateDeal 보증금 0원 월세", () => {
+  const p = deriveParams({ ...base, ownedHome: { ...base.ownedHome, has: false } });
+  it("보증금 0원으로 신고된 월세는 신고 오류일 수 있어 적합으로 두지 않는다", () => {
+    const e = evaluateDeal(p, { type: "월세", amount: 0, rent: 33 });
+    expect(e.ok).toBe(false);
+    expect(e.reasons).toContain("보증금 0원 신고");
+  });
+  it("보증금이 있으면 그 사유는 없다", () => {
+    expect(evaluateDeal(p, { type: "월세", amount: 1000, rent: 33 }).reasons).not.toContain("보증금 0원 신고");
+  });
+});

@@ -21,7 +21,7 @@ export interface Derived extends JudgeParams {
   sellExtra: number;
 }
 
-export type RejectReason = "대출 한도 초과" | "대출 비율 초과" | "DSR 초과" | "예산 초과";
+export type RejectReason = "대출 한도 초과" | "대출 비율 초과" | "DSR 초과" | "예산 초과" | "보증금 0원 신고";
 
 export interface Evaluation {
   ok: boolean;
@@ -104,6 +104,8 @@ export function evaluateDeal(p: JudgeParams, d: { type: DealType; amount: number
   if (!ratioOk) reasons.push("대출 비율 초과");
   if (carry > p.dsrMonthly + EPS) reasons.push("DSR 초과");
   if (monthly > p.budget + EPS) reasons.push("예산 초과");
+  // 아파트 월세 보증금 0원은 대부분 신고 입력 오류라 월 부담이 실제보다 낮게 나온다.
+  if (d.type === "월세" && d.amount <= 0) reasons.push("보증금 0원 신고");
   return { ok: reasons.length === 0, loan, carry, monthly, margin: p.budget - monthly, reasons };
 }
 
