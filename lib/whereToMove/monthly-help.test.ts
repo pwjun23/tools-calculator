@@ -5,7 +5,7 @@ import { explainMonthly } from "./monthly-help";
 // 가상 값
 const p: Derived = {
   cash: 5000, budget: 120, mgmt: 25, fee: 0.015, factor: 0.004774152954654538, rentRate: 0.036, rentCap: 20000,
-  mortgageCap: 60000, dsrMonthly: 100, ltvBuy: 0.7, ltvRent: 0.8, available: 95, existingMonthly: 0, sellExtra: 0,
+  mortgageCap: 60000, dsrMonthly: 100, ltvBuy: 0.7, ltvRent: 0.8, available: 95, existingMonthly: 0, sellExtra: 0, convRate: 0.05,
 };
 const rates = { mortgageRate: 0.04, mortgageYears: 30 };
 

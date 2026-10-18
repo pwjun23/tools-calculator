@@ -76,6 +76,8 @@ const settingsSchema = z.object({
   rentLoanRate: rate,
   ltvRent: ratio,
   rentLoanCap: money,
+  /** 월세를 전세로 환산할 때 쓰는 연 전환율(시세 비교용). 0이면 환산이 무한대라 1% 이상. */
+  rentConvRate: z.number().min(0.01).max(0.2),
   annualIncome: money,
   dsrRatio: ratio,
   loans: z.array(loanSchema).max(10),
@@ -112,6 +114,7 @@ export const DEFAULT_SETTINGS: Settings = {
   rentLoanRate: 0.04,
   ltvRent: 0.8,
   rentLoanCap: 20000,
+  rentConvRate: 0.05,
   annualIncome: 0,
   dsrRatio: 0.4,
   loans: [],

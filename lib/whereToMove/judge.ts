@@ -19,9 +19,11 @@ export interface Derived extends JudgeParams {
   available: number;
   existingMonthly: number;
   sellExtra: number;
+  /** 월세 → 전세 환산 연 전환율 */
+  convRate: number;
 }
 
-export type RejectReason = "대출 한도 초과" | "대출 비율 초과" | "DSR 초과" | "예산 초과" | "보증금 0원 신고";
+export type RejectReason = "대출 한도 초과" | "대출 비율 초과" | "DSR 초과" | "예산 초과" | "보증금 0원 신고" | "시세보다 크게 낮음";
 
 export interface Evaluation {
   ok: boolean;
@@ -78,11 +80,16 @@ export function deriveParams(s: Settings): Derived {
     available,
     existingMonthly,
     sellExtra,
+    convRate: s.rentConvRate,
   };
 }
 
 /** Code.gs evaluateDeal_ 와 같은 판정. */
-export function evaluateDeal(p: JudgeParams, d: { type: DealType; amount: number; rent: number }): Evaluation {
+export function evaluateDeal(
+  p: JudgeParams,
+  d: { type: DealType; amount: number; rent: number },
+  opts: { belowMarket?: boolean } = {},
+): Evaluation {
   let loan: number;
   let ratioOk: boolean;
   let capOk: boolean;
@@ -106,6 +113,8 @@ export function evaluateDeal(p: JudgeParams, d: { type: DealType; amount: number
   if (monthly > p.budget + EPS) reasons.push("예산 초과");
   // 아파트 월세 보증금 0원은 대부분 신고 입력 오류라 월 부담이 실제보다 낮게 나온다.
   if (d.type === "월세" && d.amount <= 0) reasons.push("보증금 0원 신고");
+  // 같은 평형 시세보다 크게 싼 거래는 가족 간 계약·임대주택 등 특수 거래일 수 있어 구할 수 있는 집으로 보지 않는다.
+  if (opts.belowMarket) reasons.push("시세보다 크게 낮음");
   return { ok: reasons.length === 0, loan, carry, monthly, margin: p.budget - monthly, reasons };
 }
 

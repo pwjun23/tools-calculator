@@ -4,7 +4,7 @@ import type { DealType } from "./types";
 const EPS = 1e-9;
 const r1 = (v: number) => Math.round(v * 10) / 10;
 /** 금액(만원): 1억 이상은 `3.56억`, 아래는 `5,000만`. */
-const man = (v: number) => (v >= 10000 ? `${Math.round(v / 100) / 100}억` : `${r1(v).toLocaleString("en-US")}만`);
+export const man = (v: number) => (v >= 10000 ? `${Math.round(v / 100) / 100}억` : `${r1(v).toLocaleString("en-US")}만`);
 const pct = (v: number) => `${Math.round(v * 1000) / 10}%`;
 const pass = (ok: boolean) => (ok ? "통과" : "초과");
 

@@ -168,3 +168,20 @@ describe("evaluateDeal 보증금 0원 월세", () => {
     expect(evaluateDeal(p, { type: "월세", amount: 1000, rent: 33 }).reasons).not.toContain("보증금 0원 신고");
   });
 });
+
+describe("evaluateDeal 시세보다 크게 낮음", () => {
+  it("belowMarket 이면 다른 조건을 통과해도 부적합", () => {
+    const e = evaluateDeal(P, { type: "전세", amount: 15000, rent: 0 }, { belowMarket: true });
+    expect(e.ok).toBe(false);
+    expect(e.reasons).toEqual(["시세보다 크게 낮음"]);
+  });
+  it("표시가 없으면 이전과 같다", () => {
+    expect(evaluateDeal(P, { type: "전세", amount: 15000, rent: 0 }).reasons).toEqual([]);
+  });
+});
+
+describe("deriveParams 전환율", () => {
+  it("설정의 월세 전환율을 convRate 로 넘긴다", () => {
+    expect(deriveParams({ ...base, rentConvRate: 0.06 }).convRate).toBe(0.06);
+  });
+});

@@ -31,6 +31,7 @@ const SECTIONS: { title: string; fields: { key: NumKey; label: string; unit: Uni
     { key: "rentLoanRate", label: "대출 금리 (연)", unit: "%" },
     { key: "ltvRent", label: "대출 비율", unit: "%" },
     { key: "rentLoanCap", label: "보증기관 한도", unit: "만원" },
+    { key: "rentConvRate", label: "월세 전환율 (연, 시세 비교용)", unit: "%" },
   ] },
   { title: "소득·DSR", fields: [
     { key: "annualIncome", label: "연 소득 (0이면 DSR 계산 안 함)", unit: "만원" },

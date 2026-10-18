@@ -3,7 +3,9 @@ import { estimateModes, straightKm, type LatLng, type Place } from "@/lib/whereT
 import { complexKey } from "@/lib/whereToMove/complexes";
 import { requireUser } from "@/lib/whereToMove/current-user";
 import { fillLiveSites, kakaoAddress, kakaoComplex, kakaoLiveKey } from "@/lib/whereToMove/kakao-live";
+import { periodStart } from "@/lib/whereToMove/board";
 import { deriveParams, evaluateDeal, filterDeals } from "@/lib/whereToMove/judge";
+import { MARKET, belowMarket, marketIndex } from "@/lib/whereToMove/market";
 import type { MonthlyCalc } from "@/lib/whereToMove/monthly-help";
 import { buildNotice } from "@/lib/whereToMove/notice";
 import { getOrCreateSettings, lastNotifyLog, listComplexes, listDeals } from "@/lib/whereToMove/repo";
@@ -32,6 +34,8 @@ export default async function Page() {
   from.setMonth(from.getMonth() - 12);
   const stored = await listDeals(settings.regions.map((r) => r.sggCd), { dealDateFrom: KST_DATE.format(from) });
   const p = deriveParams(settings);
+  // 같은 평형 최근 6개월 시세. 목록 필터(면적·갱신 설정)와 관계없이 받은 거래 전체로 계산한다.
+  const marketAt = marketIndex(stored, periodStart(String(MARKET.months), KST_DATE.format(new Date()))!, p.convRate);
   // 임시(WTM_KAKAO_LIVE): 좌표가 없는 직장·학교·단지는 카카오로 그때그때 구한다. 결과는 저장하지 않는다.
   const live = kakaoLiveKey();
   const locate = async (a: { address: string; lat?: number; lng?: number }): Promise<LatLng | null> => {
@@ -58,12 +62,14 @@ export default async function Page() {
   }
 
   const deals: Deal[] = shown.map((d) => {
-    const e = evaluateDeal(p, d);
+    const market = marketAt(d);
+    const e = evaluateDeal(p, d, { belowMarket: belowMarket(d, market, p.convRate) });
     return {
       recorded: KST_DATE.format(d.firstSeenAt), type: d.type, sggCd: d.sggCd,
       region: settings.regions.find((r) => r.sggCd === d.sggCd)?.label ?? "", dong: d.dong, apt: d.apt, area: d.area, floor: d.floor,
       date: d.date, amount: d.amount, rent: d.rent, loan: Math.round(e.loan),
       monthly: Math.round(e.monthly * 10) / 10, margin: Math.round(e.margin * 10) / 10, ok: e.ok, reason: e.reasons.join(", "),
+      ...(market ? { market } : {}),
       ...(places.length ? tripsOf(sites.get(complexKey(d)), places) : {}),
     };
   });

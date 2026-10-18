@@ -64,3 +64,10 @@
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
 :global(.dark) .spinner { border-color: #3a3d42; border-top-color: #6ea8fe; }
 :global(.dark) .loading { color: #a1a1a6; }
+
+/* 같은 평형 시세 줄. 카드 링크(::after) 위로 올려 글자를 고를 수 있게 한다. */
+.market { position: relative; z-index: 1; margin-top: 6px; font-size: .85rem; color: #45454a; }
+.market p { margin: 2px 0; }
+.warn { color: #b26a00; font-weight: 600; }
+:global(.dark) .market { color: #c7c7cc; }
+:global(.dark) .warn { color: #ffb74d; }

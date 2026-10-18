@@ -8,6 +8,7 @@ import { PERIODS, groupDongs, periodStart, readFilters, toggleDong } from '@/lib
 import { TRIP_ICON, TRIP_MODES, commuteHelp, kakaoRouteUrl, kmLabel, parseTripChoice, passesTrip, tripChoices, type LatLng, type Place, type Trip } from '@/lib/whereToMove/commute';
 import { umdOf } from '@/lib/whereToMove/judge';
 import { naverLandUrl } from '@/lib/whereToMove/links';
+import { marketLines, type Market } from '@/lib/whereToMove/market';
 import { explainMonthly, type MonthlyCalc } from '@/lib/whereToMove/monthly-help';
 import ThemeToggle from '@/app/components/ThemeToggle';
 import s from './board.module.css';
@@ -16,6 +17,8 @@ export type Deal = {
   recorded: string; type: '매매' | '전세' | '월세'; sggCd: string; region: string; dong: string; apt: string; area: number; floor: number | string;
   date: string; amount: number; rent: number; loan: number; monthly: number; margin: number; ok: boolean;
   reason?: string;
+  /** 같은 평형 최근 6개월 시세. 3건 미만이면 없음. */
+  market?: Market;
   trips?: (Trip & { id: string })[] | null;
   pos?: LatLng;
   site?: 'ok' | 'pending' | 'notfound';
@@ -240,6 +243,11 @@ export default function DealBoard({ deals, regions, notice, places = [], calc }:
             </div>
             <div className={s.meta}>{multi ? `${d.region} ${d.dong}` : d.dong} · {d.type} · {d.area}㎡ · {d.floor}층 · {d.date}</div>
             <Nums d={d} calc={calc} />
+            {calc && d.market && (
+              <div className={s.market}>
+                {marketLines(calc.p, d, d.market).map((t, j) => <p key={j} className={t.startsWith('⚠') ? s.warn : undefined}>{t}</p>)}
+              </div>
+            )}
             {places.length > 0 && (d.trips
               ? places.map((p, j) => {
                   const t = d.trips!.find(x => x.id === p.id);

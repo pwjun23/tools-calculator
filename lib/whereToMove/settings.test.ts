@@ -126,3 +126,17 @@ describe("workplaces", () => {
     expect(r.settings.workplaces).toEqual([]);
   });
 });
+
+describe("rentConvRate", () => {
+  it("예전 설정(항목 없음)은 기본 5%", () => {
+    const { rentConvRate: _, ...old } = DEFAULT_SETTINGS;
+    const r = readStoredSettings(old);
+    expect(r.valid).toBe(true);
+    expect(r.settings.rentConvRate).toBe(0.05);
+  });
+  it("0%·20% 초과는 거부(0이면 환산이 무한대)", () => {
+    expect(parseSettings({ ...DEFAULT_SETTINGS, rentConvRate: 0 }).ok).toBe(false);
+    expect(parseSettings({ ...DEFAULT_SETTINGS, rentConvRate: 0.21 }).ok).toBe(false);
+    expect(parseSettings({ ...DEFAULT_SETTINGS, rentConvRate: 0.06 }).ok).toBe(true);
+  });
+});

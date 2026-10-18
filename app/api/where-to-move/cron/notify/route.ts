@@ -1,9 +1,13 @@
 import { auth } from "@/lib/whereToMove/auth";
 import { isCronAuthorized } from "@/lib/whereToMove/cron";
+import { periodStart } from "@/lib/whereToMove/board";
 import { deriveParams, evaluateDeal, filterDeals } from "@/lib/whereToMove/judge";
+import { MARKET, belowMarket, marketIndex } from "@/lib/whereToMove/market";
 import { LINK_URL, sendKakaoMemo } from "@/lib/whereToMove/kakao";
 import { buildWeeklyMessage } from "@/lib/whereToMove/message";
 import { kakaoAccountId, listDeals, listNotifyTargets, logNotify, markNotified } from "@/lib/whereToMove/repo";
+
+const KST_DATE = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Seoul" });
 
 // 월요일 08시 KST. 사용자마다 지난 알림 이후 새로 들어온 거래를 판정해 카카오톡 나에게 보내기로 보낸다.
 export async function GET(request: Request) {
@@ -20,9 +24,13 @@ export async function GET(request: Request) {
       // 저장된 설정을 읽지 못했으면 기본값으로 판정한 알림을 보내지 않는다.
       if (!t.valid) throw new Error("저장된 설정을 읽지 못했습니다. 설정 화면에서 다시 저장해 주세요");
       const since = t.lastNotifiedAt ?? runAt;
-      const fresh = filterDeals(t.data, await listDeals(t.data.regions.map((r) => r.sggCd), { firstSeenAfter: since }));
+      const sggCds = t.data.regions.map((r) => r.sggCd);
+      const fresh = filterDeals(t.data, await listDeals(sggCds, { firstSeenAfter: since }));
       const p = deriveParams(t.data);
-      const judged = fresh.map((d) => ({ ...d, ...evaluateDeal(p, d) }));
+      // 목록과 같은 기준: 같은 평형 최근 6개월 시세보다 크게 싼 거래는 적합으로 보내지 않는다.
+      const from = periodStart(String(MARKET.months), KST_DATE.format(runAt))!;
+      const marketAt = marketIndex(fresh.length ? await listDeals(sggCds, { dealDateFrom: from }) : [], from, p.convRate);
+      const judged = fresh.map((d) => ({ ...d, ...evaluateDeal(p, d, { belowMarket: belowMarket(d, marketAt(d), p.convRate) }) }));
       newCount = judged.length;
       okCount = judged.filter((d) => d.ok).length;
       const text = buildWeeklyMessage(judged);
