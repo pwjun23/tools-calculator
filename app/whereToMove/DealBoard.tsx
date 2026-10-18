@@ -53,10 +53,12 @@ function Nums({ d, calc }: { d: Deal; calc?: MonthlyCalc }) {
   return (
     <div className={s.nums}>
       <span className={s.price}>{price(d)}</span>
-      <span>
-        월 부담 <b>{d.monthly}만</b>
-        {calc && <button type="button" className={s.info} aria-expanded={open} aria-label="월 부담 계산 방법" onClick={() => setOpen(o => !o)}>ⓘ</button>}
-      </span>
+      {/* 숫자와 ⓘ를 한 버튼으로 묶어 누를 곳을 넓힌다(작은 ⓘ만 누르기 어려움). */}
+      {calc
+        ? <button type="button" className={s.monthlyBtn} aria-expanded={open} aria-label={`월 부담 ${d.monthly}만, 계산 방법 보기`} onClick={() => setOpen(o => !o)}>
+            월 부담 <b>{d.monthly}만</b> <span className={s.infoMark}>ⓘ</span>
+          </button>
+        : <span>월 부담 <b>{d.monthly}만</b></span>}
       {/* 여유는 월 예산만 본 값이다. 부적합이면 대출 조건에 걸렸을 수 있으므로 초록색을 쓰지 않는다. */}
       {d.margin >= 0
         ? <span className={d.ok ? s.plus : s.muted}>월 예산 여유 +{d.margin}만</span>
