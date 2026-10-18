@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupDongs, readFilters, toggleDong } from "./board";
+import { PERIODS, groupDongs, periodStart, readFilters, toggleDong } from "./board";
 
 describe("groupDongs", () => {
   it("설정에서 고른 동을 거래 유무와 관계없이 지역별로 가나다순으로 보여 준다", () => {
@@ -38,5 +38,23 @@ describe("readFilters", () => {
     expect(readFilters(JSON.stringify({ sort: "x", okOnly: "yes", minArea: 75 }), { dongs, sorts })).toEqual({});
     expect(readFilters("{깨짐", { dongs, sorts })).toEqual({});
     expect(readFilters(null, { dongs, sorts })).toEqual({});
+  });
+});
+
+describe("기간 필터", () => {
+  it("선택지는 전체·1·3·6개월", () => {
+    expect(PERIODS.map((p) => p.v)).toEqual(["all", "1", "3", "6"]);
+  });
+  it("오늘에서 N개월 전 날짜(YYYY-MM-DD)를 돌려주고, 전체는 null", () => {
+    expect(periodStart("3", "2026-10-18")).toBe("2026-07-18");
+    expect(periodStart("1", "2026-03-31")).toBe("2026-02-28");
+    expect(periodStart("6", "2026-01-15")).toBe("2025-07-15");
+    expect(periodStart("all", "2026-10-18")).toBeNull();
+    expect(periodStart("x", "2026-10-18")).toBeNull();
+  });
+  it("저장된 기간은 아는 값만 읽는다", () => {
+    const allowed = { dongs: [], sorts: ["date"] };
+    expect(readFilters(JSON.stringify({ period: "3" }), allowed)).toEqual({ period: "3" });
+    expect(readFilters(JSON.stringify({ period: "12" }), allowed)).toEqual({});
   });
 });

@@ -8,8 +8,27 @@ export function toggleDong(selected: string[], value: string): string[] {
   return selected.includes(value) ? selected.filter((v) => v !== value) : [...selected, value];
 }
 
-export type StoredFilters = { dongs?: string[]; types?: string[]; okOnly?: boolean; minArea?: string; maxMonthly?: string; sort?: string; commute?: string };
+export type StoredFilters = { dongs?: string[]; types?: string[]; okOnly?: boolean; minArea?: string; maxMonthly?: string; sort?: string; commute?: string; period?: string };
 const DEAL_TYPES = ["매매", "전세", "월세"];
+
+/** 목록 기간 필터(계약일 기준). 오래된 계약일수록 지금 시세와 차이가 크다. */
+export const PERIODS = [
+  { v: "all", t: "전체 기간" },
+  { v: "1", t: "최근 1개월" },
+  { v: "3", t: "최근 3개월" },
+  { v: "6", t: "최근 6개월" },
+] as const;
+
+/** 기간의 시작 계약일(YYYY-MM-DD). today 에서 N개월 전, 그달에 없는 날이면 그달 말일. 전체·모르는 값은 null. */
+export function periodStart(period: string, today: string): string | null {
+  const n = PERIODS.some((p) => p.v === period && p.v !== "all") ? Number(period) : 0;
+  if (!n) return null;
+  const [y, m, d] = today.split("-").map(Number);
+  const first = new Date(Date.UTC(y, m - 1 - n, 1));
+  const last = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
+  first.setUTCDate(Math.min(d, last));
+  return first.toISOString().slice(0, 10);
+}
 
 /**
  * 브라우저에 저장해 둔 목록 필터를 읽는다. 지금 쓸 수 없는 값(빠진 동, 모르는 정렬, 틀린 형식)은 버린다.
@@ -34,5 +53,6 @@ export function readFilters(raw: string | null, allowed: { dongs: string[]; sort
   if (typeof o.maxMonthly === "string") out.maxMonthly = o.maxMonthly;
   if (typeof o.sort === "string" && allowed.sorts.includes(o.sort)) out.sort = o.sort;
   if (typeof o.commute === "string") out.commute = o.commute;
+  if (typeof o.period === "string" && PERIODS.some((p) => p.v === o.period)) out.period = o.period;
   return out;
 }

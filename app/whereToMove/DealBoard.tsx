@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authClient } from '@/lib/whereToMove/auth-client';
-import { groupDongs, readFilters, toggleDong } from '@/lib/whereToMove/board';
+import { PERIODS, groupDongs, periodStart, readFilters, toggleDong } from '@/lib/whereToMove/board';
 import { TRIP_ICON, TRIP_MODES, commuteHelp, kakaoRouteUrl, kmLabel, parseTripChoice, passesTrip, tripChoices, type LatLng, type Place, type Trip } from '@/lib/whereToMove/commute';
 import { umdOf } from '@/lib/whereToMove/judge';
 import { naverLandUrl } from '@/lib/whereToMove/links';
@@ -31,6 +31,7 @@ const SORTS = [
 
 /** 마지막에 고른 필터(이 브라우저에만 저장). 검색어는 저장하지 않는다. */
 const FILTER_KEY = 'wtm.filters.v1';
+const KST_TODAY = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' });
 
 const won = (v: number) => (v >= 10000 ? `${Math.round(v / 100) / 100}억` : `${v.toLocaleString()}만`);
 const hogangUrl = (d: Deal) => `https://hogangnono.com/search?q=${encodeURIComponent(`${d.region} ${d.dong} ${d.apt}`)}`;
@@ -94,6 +95,7 @@ export default function DealBoard({ deals, regions, notice, places = [], calc }:
   const [maxMonthly, setMaxMonthly] = useState('');
   const [sort, setSort] = useState<(typeof SORTS)[number]['v']>('date');
   const [commute, setCommute] = useState('off');
+  const [period, setPeriod] = useState('all');
 
   const dongGroups = useMemo(() => groupDongs(regions), [regions]);
   const [restored, setRestored] = useState(false);
@@ -113,6 +115,7 @@ export default function DealBoard({ deals, regions, notice, places = [], calc }:
       if (f.maxMonthly !== undefined) setMaxMonthly(f.maxMonthly);
       if (f.sort) setSort(f.sort as (typeof SORTS)[number]['v']);
       if (f.commute) setCommute(f.commute);
+      if (f.period) setPeriod(f.period);
     } catch { /* 저장소 사용 불가 */ }
     setRestored(true);
     /* eslint-enable react-hooks/set-state-in-effect */
@@ -121,15 +124,17 @@ export default function DealBoard({ deals, regions, notice, places = [], calc }:
   useEffect(() => {
     if (!restored) return;
     try {
-      localStorage.setItem(FILTER_KEY, JSON.stringify({ dongs, types, okOnly, minArea, maxMonthly, sort, commute }));
+      localStorage.setItem(FILTER_KEY, JSON.stringify({ dongs, types, okOnly, minArea, maxMonthly, sort, commute, period }));
     } catch { /* 저장소 사용 불가 */ }
-  }, [restored, dongs, types, okOnly, minArea, maxMonthly, sort, commute]);
+  }, [restored, dongs, types, okOnly, minArea, maxMonthly, sort, commute, period]);
   const multi = regions.length > 1;
 
   const choice = useMemo(() => parseTripChoice(commute, places), [commute, places]);
   const rows = useMemo(() => {
     const kw = q.replace(/\s/g, '');
+    const from = periodStart(period, KST_TODAY.format(new Date()));
     const out = deals.filter(d =>
+      (!from || d.date >= from) &&
       (!dongs.length || dongs.includes(`${d.sggCd}:${umdOf(d.dong)}`)) &&
       types.includes(d.type) &&
       (!okOnly || d.ok) &&
@@ -144,7 +149,7 @@ export default function DealBoard({ deals, regions, notice, places = [], calc }:
       area: (a, b) => b.area - a.area,
     };
     return out.sort(by[sort]);
-  }, [deals, q, dongs, types, okOnly, minArea, maxMonthly, choice, sort]);
+  }, [deals, q, dongs, types, okOnly, minArea, maxMonthly, choice, sort, period]);
 
   const toggleType = (t: string) =>
     setTypes(cur => (cur.includes(t) ? cur.filter(x => x !== t) : [...cur, t]));
@@ -199,6 +204,9 @@ export default function DealBoard({ deals, regions, notice, places = [], calc }:
         <div className={s.row}>
           <input className={s.small} inputMode="numeric" placeholder="최소 면적(㎡)" value={minArea} onChange={e => setMinArea(e.target.value)} />
           <input className={s.small} inputMode="numeric" placeholder="월 부담 상한(만)" value={maxMonthly} onChange={e => setMaxMonthly(e.target.value)} />
+          <select className={s.small} aria-label="계약일 기간" value={period} onChange={e => setPeriod(e.target.value)}>
+            {PERIODS.map(o => <option key={o.v} value={o.v}>{o.t}</option>)}
+          </select>
           <select className={s.small} value={sort} onChange={e => setSort(e.target.value as typeof sort)}>
             {SORTS.map(o => <option key={o.v} value={o.v}>{o.t}</option>)}
           </select>
