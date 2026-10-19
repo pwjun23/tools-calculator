@@ -140,3 +140,17 @@ describe("rentConvRate", () => {
     expect(parseSettings({ ...DEFAULT_SETTINGS, rentConvRate: 0.06 }).ok).toBe(true);
   });
 });
+
+describe("excludedApts", () => {
+  const ex = { sggCd: "11111", dong: "가상동", apt: "가상아파트" };
+  it("기본값은 빈 목록, 예전 설정도 빈 목록", () => {
+    expect(DEFAULT_SETTINGS.excludedApts).toEqual([]);
+    const { excludedApts: _e, ...old } = DEFAULT_SETTINGS;
+    expect(readStoredSettings(old)).toEqual({ settings: DEFAULT_SETTINGS, valid: true });
+  });
+  it("50개까지, 시·군·구 코드는 5자리", () => {
+    expect(parseSettings({ ...DEFAULT_SETTINGS, excludedApts: Array(50).fill(ex) }).ok).toBe(true);
+    expect(parseSettings({ ...DEFAULT_SETTINGS, excludedApts: Array(51).fill(ex) }).ok).toBe(false);
+    expect(parseSettings({ ...DEFAULT_SETTINGS, excludedApts: [{ ...ex, sggCd: "1" }] }).ok).toBe(false);
+  });
+});

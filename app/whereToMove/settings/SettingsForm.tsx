@@ -9,6 +9,7 @@ import { saveSettingsAction } from "./actions";
 import RegionPicker from "./RegionPicker";
 import WorkplacePicker from "./WorkplacePicker";
 import SchoolPicker from "./SchoolPicker";
+import ExcludedList from "./ExcludedList";
 
 type NumKey = { [K in keyof Settings]: Settings[K] extends number ? K : never }[keyof Settings];
 type Unit = "만원" | "%" | "년" | "㎡";
@@ -112,6 +113,8 @@ export default function SettingsForm({ initial, initialNotify }: { initial: Sett
           갱신 계약 제외
         </label>
       </section>
+
+      <ExcludedList value={s.excludedApts} onChange={(excludedApts) => setS({ ...s, excludedApts })} />
 
       <section className="mb-6">
         <h2 className="mb-2 font-semibold">기존 대출</h2>

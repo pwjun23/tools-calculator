@@ -9,7 +9,7 @@ import { cleanKeyword, coordOf, jusoKeys, jusoSearchKey, searchAddress, type Jus
 import { kakaoLiveKey } from "@/lib/whereToMove/kakao-live";
 import { collectKeys } from "@/lib/whereToMove/molit";
 import { checkRegions } from "@/lib/whereToMove/region-check";
-import { collectDeps, geocodeDeps, loggedMonths, saveSettings } from "@/lib/whereToMove/repo";
+import { collectDeps, geocodeDeps, getOrCreateSettings, loggedMonths, saveSettings } from "@/lib/whereToMove/repo";
 import { parseSettings } from "@/lib/whereToMove/settings";
 
 export async function saveSettingsAction(input: { data: unknown; notifyEnabled: boolean }) {
@@ -19,7 +19,9 @@ export async function saveSettingsAction(input: { data: unknown; notifyEnabled: 
   // 지역은 법정동 목록에 있는 것만 받고, label 은 목록 값으로 바꾼다.
   const checked = checkRegions(parsed.settings.regions);
   if (!checked.ok) return checked;
-  const settings = { ...parsed.settings, regions: checked.regions };
+  // 뺀 단지는 목록 화면에서 따로 바꾸므로, 열어 둔 설정 화면의 예전 값으로 덮어쓰지 않게 저장된 값을 쓴다.
+  const stored = await getOrCreateSettings(user.id);
+  const settings = { ...parsed.settings, regions: checked.regions, excludedApts: stored.valid ? stored.data.excludedApts : parsed.settings.excludedApts };
   await saveSettings(user.id, settings, input.notifyEnabled === true);
 
   // 한 번도 받지 않은 시·군·구는 응답 뒤에 바로 지난 12개월을 받는다. 실패하면 다음 날 Cron 이 이어서 받는다.

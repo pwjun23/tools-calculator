@@ -74,3 +74,9 @@
 .badges { display: inline-flex; gap: 4px; }
 .rental { background: #fff1d6; color: #8a5300; }
 :global(.dark) .rental { background: #3a2a0c; color: #ffcc80; }
+.exclude { position: relative; z-index: 1; margin-left: auto; border: 0; background: none; padding: 0; font: inherit; color: #6b6b70; cursor: pointer; }
+.toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 10; display: flex; gap: 12px; align-items: center; max-width: calc(100% - 32px); padding: 10px 14px; border-radius: 12px; background: #1c1c1e; color: #fff; font-size: .85rem; box-shadow: 0 4px 16px rgba(0,0,0,.2); }
+.toast button { border: 0; background: none; color: #6ea8fe; font: inherit; cursor: pointer; padding: 0; }
+:global(.dark) .exclude { color: #a1a1a8; }
+:global(.dark) .toast { background: #f2f2f7; color: #1c1c1e; }
+:global(.dark) .toast button { color: #1f6feb; }

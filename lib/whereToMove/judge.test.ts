@@ -121,8 +121,13 @@ describe("priceLimits", () => {
 });
 
 describe("filterDeals", () => {
-  const mk = (o: Partial<{ dong: string; areaRaw: number; renewal: boolean; cancelled: boolean; sggCd: string }>) => ({
-    dong: "구래동", areaRaw: 84.9, renewal: false, cancelled: false, sggCd: "41570", ...o,
+  const mk = (o: Partial<{ dong: string; apt: string; areaRaw: number; renewal: boolean; cancelled: boolean; sggCd: string }>) => ({
+    dong: "구래동", apt: "가상아파트", areaRaw: 84.9, renewal: false, cancelled: false, sggCd: "41570", ...o,
+  });
+
+  it("뺀 단지는 거른다", () => {
+    const s: Settings = { ...DEFAULT_SETTINGS, excludedApts: [{ sggCd: "41570", dong: "구래동", apt: "가상아파트" }] };
+    expect(filterDeals(s, [mk({}), mk({ apt: "다른아파트" })]).map((d) => d.apt)).toEqual(["다른아파트"]);
   });
 
   it("지역 동, 최소 면적, 갱신, 해제를 거른다", () => {

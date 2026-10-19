@@ -1,17 +1,19 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authClient } from '@/lib/whereToMove/auth-client';
 import { PERIODS, groupDongs, periodStart, readFilters, toggleDong } from '@/lib/whereToMove/board';
 import { TRIP_ICON, TRIP_MODES, commuteHelp, kakaoRouteUrl, kmLabel, parseTripChoice, passesTrip, tripChoices, type LatLng, type Place, type Trip } from '@/lib/whereToMove/commute';
+import { excludedKey } from '@/lib/whereToMove/exclude';
 import { umdOf } from '@/lib/whereToMove/judge';
 import { naverLandUrl } from '@/lib/whereToMove/links';
 import { marketLines, type Market } from '@/lib/whereToMove/market';
 import { explainMonthly, type MonthlyCalc } from '@/lib/whereToMove/monthly-help';
 import { rentalLines, type Tier } from '@/lib/whereToMove/rental';
 import ThemeToggle from '@/app/components/ThemeToggle';
+import { setExcludedAction } from './actions';
 import s from './board.module.css';
 
 export type Deal = {
@@ -103,8 +105,12 @@ export default function DealBoard({ deals, regions, notice, places = [], calc }:
   const [maxMonthly, setMaxMonthly] = useState('');
   const [sort, setSort] = useState<(typeof SORTS)[number]['v']>('date');
   const [commute, setCommute] = useState('off');
-  const [period, setPeriod] = useState('all');
+  const [period, setPeriod] = useState('6'); // 오래된 계약일수록 지금 시세와 차이가 커서 처음에는 최근 6개월.
   const [hideRental, setHideRental] = useState(false);
+  // 방금 뺀 단지(서버 새로고침 전에도 바로 숨김)와 되돌리기 안내.
+  const [hidden, setHidden] = useState<string[]>([]);
+  const [undo, setUndo] = useState<{ ref: Pick<Deal, 'sggCd' | 'dong' | 'apt'>; text: string } | null>(null);
+  const [excluding, startExclude] = useTransition();
 
   const dongGroups = useMemo(() => groupDongs(regions), [regions]);
   const [restored, setRestored] = useState(false);
@@ -149,6 +155,7 @@ export default function DealBoard({ deals, regions, notice, places = [], calc }:
       types.includes(d.type) &&
       (!okOnly || d.ok) &&
       (!hideRental || !d.rental) &&
+      !hidden.includes(excludedKey(d)) &&
       (!minArea || d.area >= Number(minArea)) &&
       (!maxMonthly || d.monthly <= Number(maxMonthly)) &&
       passesTrip(d.trips ?? null, choice) &&
@@ -160,7 +167,25 @@ export default function DealBoard({ deals, regions, notice, places = [], calc }:
       area: (a, b) => b.area - a.area,
     };
     return out.sort(by[sort]);
-  }, [deals, q, dongs, types, okOnly, minArea, maxMonthly, choice, sort, period, hideRental]);
+  }, [deals, q, dongs, types, okOnly, minArea, maxMonthly, choice, sort, period, hideRental, hidden]);
+
+  const exclude = (d: Deal) =>
+    startExclude(async () => {
+      const ref = { sggCd: d.sggCd, dong: d.dong, apt: d.apt };
+      const r = await setExcludedAction(ref, true);
+      if (!r.ok) return setUndo({ ref, text: r.error });
+      setHidden(cur => [...cur, excludedKey(ref)]);
+      setUndo({ ref, text: `${d.apt}을(를) 목록에서 뺐습니다.` });
+      router.refresh();
+    });
+  const restore = (ref: Pick<Deal, 'sggCd' | 'dong' | 'apt'>) =>
+    startExclude(async () => {
+      const r = await setExcludedAction(ref, false);
+      if (!r.ok) return setUndo({ ref, text: r.error });
+      setHidden(cur => cur.filter(k => k !== excludedKey(ref)));
+      setUndo(null);
+      router.refresh();
+    });
 
   const toggleType = (t: string) =>
     setTypes(cur => (cur.includes(t) ? cur.filter(x => x !== t) : [...cur, t]));
@@ -292,6 +317,7 @@ export default function DealBoard({ deals, regions, notice, places = [], calc }:
             <div className={s.links}>
               <span>네이버 부동산 ↗</span>
               <a href={hogangUrl(d)} target="_blank" rel="noopener noreferrer">호갱노노 ↗</a>
+              <button type="button" className={s.exclude} disabled={excluding} onClick={() => exclude(d)}>이 단지 빼기</button>
               {d.pos && places.flatMap(p => routeLinks(p).map(r => (
                 <a key={`${p.id}-${r.by}`} href={kakaoRouteUrl(r.by, { name: d.apt, ...d.pos! }, { name: p.label, lat: p.lat, lng: p.lng })} target="_blank" rel="noopener noreferrer">{r.text} ↗</a>
               )))}
@@ -299,6 +325,13 @@ export default function DealBoard({ deals, regions, notice, places = [], calc }:
           </li>
         ))}
       </ul>
+      {undo && (
+        <div className={s.toast} role="status">
+          <span>{undo.text}</span>
+          {hidden.includes(excludedKey(undo.ref)) && <button type="button" disabled={excluding} onClick={() => restore(undo.ref)}>되돌리기</button>}
+          <button type="button" aria-label="닫기" onClick={() => setUndo(null)}>✕</button>
+        </div>
+      )}
       {!rows.length && (
         <p className={s.empty}>
           조건에 맞는 거래가 없습니다.

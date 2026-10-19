@@ -25,6 +25,15 @@ export const MAX_WORKPLACES = 1;
 export const MAX_SCHOOLS = 4;
 export const SCHOOL_MODES = ["walk", "shuttle", "car", "transit"] as const;
 
+/** 목록·알림에서 뺄 단지 수. */
+export const MAX_EXCLUDED = 50;
+
+const excludedAptSchema = z.object({
+  sggCd: z.string().regex(/^\d{5}$/),
+  dong: z.string().trim().min(1).max(30),
+  apt: z.string().trim().min(1).max(100),
+});
+
 // 좌표는 도로명주소 좌표 API로 구해 저장한다. 그 키 승인 전 임시(카카오 실시간)에는 좌표 없이 주소만 저장하고,
 // 목록을 열 때 주소로 좌표를 구한다(카카오 결과는 저장 금지).
 const workplaceSchema = z
@@ -63,6 +72,8 @@ const settingsSchema = z.object({
     .refine((rs) => new Set(rs.map((r) => r.sggCd)).size === rs.length, { message: "같은 시·군·구를 두 번 고를 수 없습니다" }),
   workplaces: z.array(workplaceSchema).max(MAX_WORKPLACES),
   schools: z.array(schoolSchema).max(MAX_SCHOOLS),
+  /** 목록·알림에서 뺄 단지(예: 지금 사는 단지). 시세 계산에는 그대로 쓴다. */
+  excludedApts: z.array(excludedAptSchema).max(MAX_EXCLUDED),
   cash: money,
   monthlyBudget: z.number().positive(),
   monthlyMgmt: money,
@@ -95,12 +106,14 @@ export type Settings = z.infer<typeof settingsSchema>;
 export type Loan = z.infer<typeof loanSchema>;
 export type Workplace = z.infer<typeof workplaceSchema>;
 export type School = z.infer<typeof schoolSchema>;
+export type ExcludedApt = z.infer<typeof excludedAptSchema>;
 
 /** 처음 로그인한 사용자의 설정. 실제 개인 값이 아닌 일반적인 출발점이다. */
 export const DEFAULT_SETTINGS: Settings = {
   regions: [{ sggCd: "41570", label: "경기 김포시", dongs: ["구래동", "마산동", "양촌읍"] }],
   workplaces: [],
   schools: [],
+  excludedApts: [],
   cash: 5000,
   monthlyBudget: 150,
   monthlyMgmt: 25,
