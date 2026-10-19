@@ -10,6 +10,7 @@ import { umdOf } from '@/lib/whereToMove/judge';
 import { naverLandUrl } from '@/lib/whereToMove/links';
 import { marketLines, type Market } from '@/lib/whereToMove/market';
 import { explainMonthly, type MonthlyCalc } from '@/lib/whereToMove/monthly-help';
+import { rentalLines, type Tier } from '@/lib/whereToMove/rental';
 import ThemeToggle from '@/app/components/ThemeToggle';
 import s from './board.module.css';
 
@@ -19,6 +20,10 @@ export type Deal = {
   reason?: string;
   /** 같은 평형 최근 6개월 시세. 3건 미만이면 없음. */
   market?: Market;
+  /** 전월세 계약 기간(예: 26.11~28.11). 신고에 없으면 없음. */
+  term?: string;
+  /** 임대주택 단지면 같은 평형에서 많이 쓰인 보증금/월세 조합(없으면 빈 목록). 일반 단지는 없음. */
+  rental?: Tier[];
   trips?: (Trip & { id: string })[] | null;
   pos?: LatLng;
   site?: 'ok' | 'pending' | 'notfound';
@@ -99,6 +104,7 @@ export default function DealBoard({ deals, regions, notice, places = [], calc }:
   const [sort, setSort] = useState<(typeof SORTS)[number]['v']>('date');
   const [commute, setCommute] = useState('off');
   const [period, setPeriod] = useState('all');
+  const [hideRental, setHideRental] = useState(false);
 
   const dongGroups = useMemo(() => groupDongs(regions), [regions]);
   const [restored, setRestored] = useState(false);
@@ -119,6 +125,7 @@ export default function DealBoard({ deals, regions, notice, places = [], calc }:
       if (f.sort) setSort(f.sort as (typeof SORTS)[number]['v']);
       if (f.commute) setCommute(f.commute);
       if (f.period) setPeriod(f.period);
+      if (f.hideRental !== undefined) setHideRental(f.hideRental);
     } catch { /* 저장소 사용 불가 */ }
     setRestored(true);
     /* eslint-enable react-hooks/set-state-in-effect */
@@ -127,9 +134,9 @@ export default function DealBoard({ deals, regions, notice, places = [], calc }:
   useEffect(() => {
     if (!restored) return;
     try {
-      localStorage.setItem(FILTER_KEY, JSON.stringify({ dongs, types, okOnly, minArea, maxMonthly, sort, commute, period }));
+      localStorage.setItem(FILTER_KEY, JSON.stringify({ dongs, types, okOnly, minArea, maxMonthly, sort, commute, period, hideRental }));
     } catch { /* 저장소 사용 불가 */ }
-  }, [restored, dongs, types, okOnly, minArea, maxMonthly, sort, commute, period]);
+  }, [restored, dongs, types, okOnly, minArea, maxMonthly, sort, commute, period, hideRental]);
   const multi = regions.length > 1;
 
   const choice = useMemo(() => parseTripChoice(commute, places), [commute, places]);
@@ -141,6 +148,7 @@ export default function DealBoard({ deals, regions, notice, places = [], calc }:
       (!dongs.length || dongs.includes(`${d.sggCd}:${umdOf(d.dong)}`)) &&
       types.includes(d.type) &&
       (!okOnly || d.ok) &&
+      (!hideRental || !d.rental) &&
       (!minArea || d.area >= Number(minArea)) &&
       (!maxMonthly || d.monthly <= Number(maxMonthly)) &&
       passesTrip(d.trips ?? null, choice) &&
@@ -152,7 +160,7 @@ export default function DealBoard({ deals, regions, notice, places = [], calc }:
       area: (a, b) => b.area - a.area,
     };
     return out.sort(by[sort]);
-  }, [deals, q, dongs, types, okOnly, minArea, maxMonthly, choice, sort, period]);
+  }, [deals, q, dongs, types, okOnly, minArea, maxMonthly, choice, sort, period, hideRental]);
 
   const toggleType = (t: string) =>
     setTypes(cur => (cur.includes(t) ? cur.filter(x => x !== t) : [...cur, t]));
@@ -203,6 +211,9 @@ export default function DealBoard({ deals, regions, notice, places = [], calc }:
           <label className={s.check}>
             <input type="checkbox" checked={okOnly} onChange={e => setOkOnly(e.target.checked)} /> 예산 적합만
           </label>
+          <label className={s.check}>
+            <input type="checkbox" checked={hideRental} onChange={e => setHideRental(e.target.checked)} /> 임대주택 숨기기
+          </label>
         </div>
         <div className={s.row}>
           <input className={s.small} inputMode="numeric" placeholder="최소 면적(㎡)" value={minArea} onChange={e => setMinArea(e.target.value)} />
@@ -239,10 +250,18 @@ export default function DealBoard({ deals, regions, notice, places = [], calc }:
               <a className={s.cardLink} href={naverLandUrl(d)} target="_blank" rel="noopener noreferrer">
                 <strong>{d.apt}</strong>
               </a>
-              <span className={`${s.badge} ${d.ok ? s.ok : s.no}`}>{d.ok ? '적합' : '부적합'}</span>
+              <span className={s.badges}>
+                {d.rental && <span className={`${s.badge} ${s.rental}`}>임대주택</span>}
+                <span className={`${s.badge} ${d.ok ? s.ok : s.no}`}>{d.ok ? '적합' : '부적합'}</span>
+              </span>
             </div>
-            <div className={s.meta}>{multi ? `${d.region} ${d.dong}` : d.dong} · {d.type} · {d.area}㎡ · {d.floor}층 · {d.date}</div>
+            <div className={s.meta}>{multi ? `${d.region} ${d.dong}` : d.dong} · {d.type} · {d.area}㎡ · {d.floor}층 · {d.date}{d.term && ` · 계약 기간 ${d.term}`}</div>
             <Nums d={d} calc={calc} />
+            {d.rental && (
+              <div className={s.market}>
+                {rentalLines(d.rental).map((t, j) => <p key={j}>{t}</p>)}
+              </div>
+            )}
             {calc && d.market && (
               <div className={s.market}>
                 {marketLines(calc.p, d, d.market).map((t, j) => <p key={j} className={t.startsWith('⚠') ? s.warn : undefined}>{t}</p>)}

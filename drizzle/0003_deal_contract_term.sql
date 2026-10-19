@@ -1,0 +1,1 @@
+ALTER TABLE "wtm_deals" ADD COLUMN "contract_term" text DEFAULT '' NOT NULL;

@@ -8,7 +8,7 @@ export function toggleDong(selected: string[], value: string): string[] {
   return selected.includes(value) ? selected.filter((v) => v !== value) : [...selected, value];
 }
 
-export type StoredFilters = { dongs?: string[]; types?: string[]; okOnly?: boolean; minArea?: string; maxMonthly?: string; sort?: string; commute?: string; period?: string };
+export type StoredFilters = { dongs?: string[]; types?: string[]; okOnly?: boolean; minArea?: string; maxMonthly?: string; sort?: string; commute?: string; period?: string; hideRental?: boolean };
 const DEAL_TYPES = ["매매", "전세", "월세"];
 
 /** 목록 기간 필터(계약일 기준). 오래된 계약일수록 지금 시세와 차이가 크다. */
@@ -49,6 +49,7 @@ export function readFilters(raw: string | null, allowed: { dongs: string[]; sort
   const types = strs(o.types);
   if (types) out.types = types.filter((t) => DEAL_TYPES.includes(t));
   if (typeof o.okOnly === "boolean") out.okOnly = o.okOnly;
+  if (typeof o.hideRental === "boolean") out.hideRental = o.hideRental;
   if (typeof o.minArea === "string") out.minArea = o.minArea;
   if (typeof o.maxMonthly === "string") out.maxMonthly = o.maxMonthly;
   if (typeof o.sort === "string" && allowed.sorts.includes(o.sort)) out.sort = o.sort;

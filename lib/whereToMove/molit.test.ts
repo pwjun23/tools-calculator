@@ -43,6 +43,9 @@ describe("normalizeTrade", () => {
     expect(d).toMatchObject({ type: "매매", sggCd: "41570", dong: "구래동", area: 85, areaRaw: 84.97, floor: "7", date: "2026-09-03", amount: 35500, rent: 0, renewal: false, cancelled: false });
     expect(d.key).toBe("41570|매매|가상아파트|구래동|85|7|2026-09-03|35500|0");
   });
+  it("매매는 계약 기간이 빈 문자열", () => {
+    expect(normalizeTrade(parseItems(wrap(tradeItem({}), 1)).rows[0], "41570")!.term).toBe("");
+  });
   it("해제 거래는 cancelled", () => {
     const row = parseItems(wrap(tradeItem({ cdealType: "O", cdealDay: "26.09.20" }), 1)).rows[0];
     expect(normalizeTrade(row, "41570")!.cancelled).toBe(true);
@@ -65,6 +68,10 @@ describe("normalizeRent", () => {
   });
   it("월세 칸이 비어 있으면 전세", () => {
     expect(normalizeRent(rentRow({ monthlyRent: "" }), "41570")!.type).toBe("전세");
+  });
+  it("계약 기간을 그대로 담는다(없으면 빈 문자열)", () => {
+    expect(normalizeRent(rentRow({ contractTerm: "26.11~28.11" }), "41570")!.term).toBe("26.11~28.11");
+    expect(normalizeRent(rentRow({}), "41570")!.term).toBe("");
   });
 });
 

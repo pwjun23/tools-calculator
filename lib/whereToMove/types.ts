@@ -18,6 +18,8 @@ export interface MolitDeal {
   rent: number;
   renewal: boolean;
   cancelled: boolean;
+  /** 전월세 계약 기간(국토부 contractTerm, 예: "26.11~28.11"). 매매·미신고는 "". */
+  term?: string;
   /** 국토부 단지 일련번호(예: 41570-998). 수집 때만 있고 DB 거래 표에는 없다. */
   aptSeq?: string;
   /** 시·도부터 쓴 도로명 주소. 없으면 "". */

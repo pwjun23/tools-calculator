@@ -34,6 +34,10 @@ describe("readFilters", () => {
     const raw = JSON.stringify({ dongs: ["41570:구래동", "11110:없는동"], types: ["매매", "이상"], okOnly: false, minArea: "75", maxMonthly: "120", sort: "monthly", commute: "s0:walk:15" });
     expect(readFilters(raw, { dongs, sorts })).toEqual({ dongs: ["41570:구래동"], types: ["매매"], okOnly: false, minArea: "75", maxMonthly: "120", sort: "monthly", commute: "s0:walk:15" });
   });
+  it("임대주택 숨기기는 참·거짓만 받는다", () => {
+    expect(readFilters(JSON.stringify({ hideRental: true }), { dongs, sorts })).toEqual({ hideRental: true });
+    expect(readFilters(JSON.stringify({ hideRental: "1" }), { dongs, sorts })).toEqual({});
+  });
   it("모르는 정렬·틀린 형식은 빼고, 깨진 값·없음은 빈 객체", () => {
     expect(readFilters(JSON.stringify({ sort: "x", okOnly: "yes", minArea: 75 }), { dongs, sorts })).toEqual({});
     expect(readFilters("{깨짐", { dongs, sorts })).toEqual({});

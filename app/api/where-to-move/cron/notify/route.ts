@@ -1,10 +1,11 @@
 import { auth } from "@/lib/whereToMove/auth";
 import { isCronAuthorized } from "@/lib/whereToMove/cron";
 import { periodStart } from "@/lib/whereToMove/board";
-import { deriveParams, evaluateDeal, filterDeals } from "@/lib/whereToMove/judge";
+import { deriveParams, evaluateDeal, filterDeals, inRegion } from "@/lib/whereToMove/judge";
 import { MARKET, belowMarket, marketIndex } from "@/lib/whereToMove/market";
 import { LINK_URL, sendKakaoMemo } from "@/lib/whereToMove/kakao";
 import { buildWeeklyMessage } from "@/lib/whereToMove/message";
+import { rentalSales } from "@/lib/whereToMove/rental";
 import { kakaoAccountId, listDeals, listNotifyTargets, logNotify, markNotified } from "@/lib/whereToMove/repo";
 
 const KST_DATE = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Seoul" });
@@ -25,7 +26,10 @@ export async function GET(request: Request) {
       if (!t.valid) throw new Error("저장된 설정을 읽지 못했습니다. 설정 화면에서 다시 저장해 주세요");
       const since = t.lastNotifiedAt ?? runAt;
       const sggCds = t.data.regions.map((r) => r.sggCd);
-      const fresh = filterDeals(t.data, await listDeals(sggCds, { firstSeenAfter: since }));
+      const recent = await listDeals(sggCds, { firstSeenAfter: since });
+      const fresh = filterDeals(t.data, recent);
+      // 임대주택 단지의 매매 신고는 면적·갱신 설정과 관계없이 알린다(분양 전환 신호).
+      const sales = rentalSales(recent.filter((d) => inRegion(t.data, d)));
       const p = deriveParams(t.data);
       // 목록과 같은 기준: 같은 평형 최근 6개월 시세보다 크게 싼 거래는 적합으로 보내지 않는다.
       const from = periodStart(String(MARKET.months), KST_DATE.format(runAt))!;
@@ -33,7 +37,7 @@ export async function GET(request: Request) {
       const judged = fresh.map((d) => ({ ...d, ...evaluateDeal(p, d, { belowMarket: belowMarket(d, marketAt(d), p.convRate) }) }));
       newCount = judged.length;
       okCount = judged.filter((d) => d.ok).length;
-      const text = buildWeeklyMessage(judged);
+      const text = buildWeeklyMessage(judged, { rentalSales: sales });
 
       const accountId = await kakaoAccountId(t.userId);
       if (!accountId) throw new Error("카카오 계정 연결이 없습니다");

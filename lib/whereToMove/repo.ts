@@ -12,7 +12,7 @@ import type { MolitDeal, StoredDeal } from "./types";
 const CHUNK = 500;
 
 /**
- * 거래를 키 기준으로 넣는다. 이미 있으면 해제 여부와 갱신 시각만 바꾼다(first_seen_at 유지).
+ * 거래를 키 기준으로 넣는다. 이미 있으면 해제 여부·계약 기간(새 값이 있을 때)과 갱신 시각만 바꾼다(first_seen_at 유지).
  * seenAt 을 주면 새 행의 first_seen_at 을 그 값으로 넣는다(처음 받는 달).
  */
 export async function upsertDeals(all: MolitDeal[], seenAt?: (d: MolitDeal) => Date): Promise<number> {
@@ -20,13 +20,20 @@ export async function upsertDeals(all: MolitDeal[], seenAt?: (d: MolitDeal) => D
   for (let i = 0; i < deals.length; i += CHUNK) {
     const rows = deals.slice(i, i + CHUNK).map((d) => ({
       dealKey: d.key, type: d.type, sggCd: d.sggCd, dong: d.dong, apt: d.apt, area: d.area, areaRaw: d.areaRaw,
-      floor: d.floor, dealDate: d.date, amount: d.amount, rent: d.rent, renewal: d.renewal, cancelled: d.cancelled,
+      floor: d.floor, dealDate: d.date, amount: d.amount, rent: d.rent, renewal: d.renewal, cancelled: d.cancelled, term: d.term ?? "",
       ...(seenAt ? { firstSeenAt: seenAt(d) } : {}),
     }));
     await db
       .insert(wtmDeals)
       .values(rows)
-      .onConflictDoUpdate({ target: wtmDeals.dealKey, set: { cancelled: sql`excluded.cancelled`, updatedAt: sql`now()` } });
+      .onConflictDoUpdate({
+        target: wtmDeals.dealKey,
+        set: {
+          cancelled: sql`excluded.cancelled`,
+          term: sql`case when excluded.contract_term <> '' then excluded.contract_term else ${wtmDeals.term} end`,
+          updatedAt: sql`now()`,
+        },
+      });
   }
   return deals.length;
 }
@@ -39,7 +46,7 @@ export async function listDeals(sggCds: string[], opts: { firstSeenAfter?: Date;
   const rows = await db.select().from(wtmDeals).where(and(...conds)).orderBy(desc(wtmDeals.dealDate));
   return rows.map((r) => ({
     key: r.dealKey, type: r.type, sggCd: r.sggCd, dong: r.dong, apt: r.apt, area: r.area, areaRaw: r.areaRaw,
-    floor: r.floor, date: r.dealDate, amount: r.amount, rent: r.rent, renewal: r.renewal, cancelled: r.cancelled,
+    floor: r.floor, date: r.dealDate, amount: r.amount, rent: r.rent, renewal: r.renewal, cancelled: r.cancelled, term: r.term,
     firstSeenAt: r.firstSeenAt,
   }));
 }

@@ -121,17 +121,24 @@ export function evaluateDeal(
 /** 국토부 API 는 읍·면 거래에 리를 붙여 준다("양촌읍 양곡리"). 설정·필터는 읍·면·동 단위라 첫 단어만 쓴다. */
 export const umdOf = (dong: string) => dong.trim().split(/\s+/)[0];
 
-/** 사용자 지역·면적·갱신 조건과 해제 여부로 거른다. */
-export function filterDeals<T extends { dong: string; areaRaw: number; renewal: boolean; cancelled: boolean; sggCd: string }>(
-  s: Settings,
-  deals: T[],
-): T[] {
+type Filterable = { dong: string; areaRaw: number; renewal: boolean; cancelled: boolean; sggCd: string };
+
+/** 사용자가 고른 시·군·구·읍·면·동 안의 거래인지. */
+export function inRegion(s: Settings, d: Pick<Filterable, "sggCd" | "dong">): boolean {
+  const region = s.regions.find((r) => r.sggCd === d.sggCd);
+  return !!region && region.dongs.includes(umdOf(d.dong));
+}
+
+/**
+ * 사용자 지역·면적·갱신 조건과 해제 여부로 거른다.
+ * keepRenewal 이 참인 거래(예: 갱신이 대부분인 임대주택)는 갱신 제외 설정이어도 남긴다.
+ */
+export function filterDeals<T extends Filterable>(s: Settings, deals: T[], opts: { keepRenewal?: (d: T) => boolean } = {}): T[] {
   return deals.filter((d) => {
     if (d.cancelled) return false;
-    const region = s.regions.find((r) => r.sggCd === d.sggCd);
-    if (!region || !region.dongs.includes(umdOf(d.dong))) return false;
+    if (!inRegion(s, d)) return false;
     if (s.minArea > 0 && d.areaRaw < s.minArea) return false;
-    if (s.excludeRenewal && d.renewal) return false;
+    if (s.excludeRenewal && d.renewal && !opts.keepRenewal?.(d)) return false;
     return true;
   });
 }

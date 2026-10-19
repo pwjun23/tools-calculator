@@ -74,6 +74,8 @@ export const wtmDeals = pgTable(
     rent: integer("rent").notNull(),
     renewal: boolean("renewal").notNull(),
     cancelled: boolean("cancelled").notNull().default(false),
+    /** 전월세 계약 기간(예: "26.11~28.11"). 매매·미신고는 "". */
+    term: text("contract_term").notNull().default(""),
     firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

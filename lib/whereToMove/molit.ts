@@ -60,7 +60,7 @@ const tradeRoad = (it: Record<string, string>) => {
 
 function build(
   it: Record<string, string>, sggCd: string, type: DealType, amount: number, rent: number, renewal: boolean, cancelled: boolean,
-  site: ReturnType<typeof siteOf>,
+  site: ReturnType<typeof siteOf>, term = "",
 ): MolitDeal | null {
   if (!it.umdNm) return null;
   const areaRaw = parseFloat(it.excluUseAr) || 0;
@@ -68,7 +68,7 @@ function build(
     type, sggCd, dong: it.umdNm, apt: it.aptNm ?? "", area: Math.round(areaRaw), areaRaw,
     floor: it.floor ?? "", date: dealDate(it.dealYear, it.dealMonth, it.dealDay), amount, rent, renewal, cancelled,
   };
-  return { ...base, key: dealKey(base), ...site };
+  return { ...base, key: dealKey(base), term, ...site };
 }
 
 export function normalizeTrade(it: Record<string, string>, sggCd: string): MolitDeal | null {
@@ -78,7 +78,7 @@ export function normalizeTrade(it: Record<string, string>, sggCd: string): Molit
 
 export function normalizeRent(it: Record<string, string>, sggCd: string): MolitDeal | null {
   const rent = parseMoney(it.monthlyRent);
-  return build(it, sggCd, rent > 0 ? "월세" : "전세", parseMoney(it.deposit), rent, (it.contractType ?? "").includes("갱신"), false, siteOf(it, sggCd, (it.roadnm ?? "").trim()));
+  return build(it, sggCd, rent > 0 ? "월세" : "전세", parseMoney(it.deposit), rent, (it.contractType ?? "").includes("갱신"), false, siteOf(it, sggCd, (it.roadnm ?? "").trim()), it.contractTerm ?? "");
 }
 
 /** KST 기준 이번 달부터 n개월의 YYYYMM. */

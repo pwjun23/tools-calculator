@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_SETTINGS, type Settings } from "./settings";
-import { deriveParams, evaluateDeal, filterDeals, monthlyPayment, priceLimits, umdOf, type JudgeParams } from "./judge";
+import { deriveParams, evaluateDeal, filterDeals, inRegion, monthlyPayment, priceLimits, umdOf, type JudgeParams } from "./judge";
 
 const base: Settings = {
   ...DEFAULT_SETTINGS,
@@ -141,6 +141,19 @@ describe("filterDeals", () => {
   it("갱신 포함 설정이면 갱신 거래도 남긴다", () => {
     const s: Settings = { ...DEFAULT_SETTINGS, excludeRenewal: false };
     expect(filterDeals(s, [mk({ renewal: true })])).toHaveLength(1);
+  });
+
+  it("keepRenewal 이 참인 거래는 갱신 제외 설정이어도 남긴다", () => {
+    const s: Settings = { ...DEFAULT_SETTINGS, excludeRenewal: true };
+    const out = filterDeals(s, [mk({ renewal: true, dong: "구래동" }), mk({ renewal: true, dong: "마산동" })], { keepRenewal: (d) => d.dong === "구래동" });
+    expect(out.map((d) => d.dong)).toEqual(["구래동"]);
+  });
+
+  it("inRegion 은 지역·동만 본다(면적·갱신 무관)", () => {
+    const s: Settings = { ...DEFAULT_SETTINGS, minArea: 75, excludeRenewal: true };
+    expect(inRegion(s, mk({ areaRaw: 30, renewal: true }))).toBe(true);
+    expect(inRegion(s, mk({ dong: "장기동" }))).toBe(false);
+    expect(inRegion(s, mk({ sggCd: "11110" }))).toBe(false);
   });
 
   it("읍·면 거래는 리가 붙어 와도 읍·면으로 고르면 통과한다", () => {

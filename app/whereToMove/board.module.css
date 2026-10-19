@@ -71,3 +71,6 @@
 .warn { color: #b26a00; font-weight: 600; }
 :global(.dark) .market { color: #c7c7cc; }
 :global(.dark) .warn { color: #ffb74d; }
+.badges { display: inline-flex; gap: 4px; }
+.rental { background: #fff1d6; color: #8a5300; }
+:global(.dark) .rental { background: #3a2a0c; color: #ffcc80; }

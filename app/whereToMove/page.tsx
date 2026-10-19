@@ -8,6 +8,7 @@ import { deriveParams, evaluateDeal, filterDeals } from "@/lib/whereToMove/judge
 import { MARKET, belowMarket, marketIndex } from "@/lib/whereToMove/market";
 import type { MonthlyCalc } from "@/lib/whereToMove/monthly-help";
 import { buildNotice } from "@/lib/whereToMove/notice";
+import { isRentalComplex, rentalTiers } from "@/lib/whereToMove/rental";
 import { getOrCreateSettings, lastNotifyLog, listComplexes, listDeals } from "@/lib/whereToMove/repo";
 import DealBoard, { type Deal } from "./DealBoard";
 
@@ -35,7 +36,10 @@ export default async function Page() {
   const stored = await listDeals(settings.regions.map((r) => r.sggCd), { dealDateFrom: KST_DATE.format(from) });
   const p = deriveParams(settings);
   // 같은 평형 최근 6개월 시세. 목록 필터(면적·갱신 설정)와 관계없이 받은 거래 전체로 계산한다.
-  const marketAt = marketIndex(stored, periodStart(String(MARKET.months), KST_DATE.format(new Date()))!, p.convRate);
+  const marketFrom = periodStart(String(MARKET.months), KST_DATE.format(new Date()))!;
+  const marketAt = marketIndex(stored, marketFrom, p.convRate);
+  // 임대주택은 운영사가 정한 보증금/월세 조합이 있어 많이 쓰인 조합을 보여 준다.
+  const tiersAt = rentalTiers(stored, marketFrom);
   // 임시(WTM_KAKAO_LIVE): 좌표가 없는 직장·학교·단지는 카카오로 그때그때 구한다. 결과는 저장하지 않는다.
   const live = kakaoLiveKey();
   const locate = async (a: { address: string; lat?: number; lng?: number }): Promise<LatLng | null> => {
@@ -55,7 +59,8 @@ export default async function Page() {
   }));
   const places = located.filter((p): p is Place => p !== null);
   const sites = places.length ? await listComplexes(settings.regions.map((r) => r.sggCd)) : new Map<string, Site>();
-  const shown = filterDeals(settings, stored);
+  // 임대주택은 거래 대부분이 갱신 계약이라 갱신 제외 설정이어도 목록에 남긴다(화면에서 숨길 수 있음).
+  const shown = filterDeals(settings, stored, { keepRenewal: (d) => isRentalComplex(d.apt) });
   if (places.length && live) {
     const label = (sggCd: string) => settings.regions.find((r) => r.sggCd === sggCd)?.label ?? "";
     await fillLiveSites(sites, shown.map((d) => ({ key: complexKey(d), q: { label: label(d.sggCd), dong: d.dong, apt: d.apt } })), (n) => kakaoComplex(n.q, live));
@@ -70,6 +75,8 @@ export default async function Page() {
       date: d.date, amount: d.amount, rent: d.rent, loan: Math.round(e.loan),
       monthly: Math.round(e.monthly * 10) / 10, margin: Math.round(e.margin * 10) / 10, ok: e.ok, reason: e.reasons.join(", "),
       ...(market ? { market } : {}),
+      ...(d.term ? { term: d.term } : {}),
+      ...(isRentalComplex(d.apt) ? { rental: tiersAt(d) } : {}),
       ...(places.length ? tripsOf(sites.get(complexKey(d)), places) : {}),
     };
   });

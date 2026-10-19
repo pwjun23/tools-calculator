@@ -32,4 +32,17 @@ describe("buildWeeklyMessage", () => {
     const many = Array.from({ length: 10 }, (_, i) => d({ apt: "아주긴단지이름".repeat(5) + i }));
     expect(buildWeeklyMessage(many).length).toBeLessThanOrEqual(200);
   });
+
+  it("임대주택 단지 매매가 있으면 요약 바로 아래에 알린다", () => {
+    const msg = buildWeeklyMessage([d({})], { rentalSales: [{ apt: "가상뉴스테이", count: 2 }, { apt: "가상행복주택", count: 1 }] });
+    expect(msg.split("\n")[1]).toBe("⚑ 임대주택 매매 신고: 가상뉴스테이 2건, 가상행복주택 1건 (분양 전환 신호일 수 있음)");
+    expect(msg.split("\n")[2]).toBe("예산 적합 1건");
+  });
+
+  it("임대주택 매매 줄이 있어도 200자를 넘지 않는다", () => {
+    const many = Array.from({ length: 10 }, (_, i) => d({ apt: "아주긴단지이름".repeat(5) + i }));
+    const msg = buildWeeklyMessage(many, { rentalSales: [{ apt: "아주긴뉴스테이".repeat(6), count: 3 }] });
+    expect(msg.length).toBeLessThanOrEqual(200);
+    expect(msg).toContain("⚑ 임대주택 매매 신고");
+  });
 });
