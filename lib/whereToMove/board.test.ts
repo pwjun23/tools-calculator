@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PERIODS, groupDongs, periodStart, readFilters, toggleDong } from "./board";
+import { PERIODS, groupDongs, periodStart, readBoardFilters, readFilters, toggleDong } from "./board";
 
 describe("groupDongs", () => {
   it("설정에서 고른 동을 거래 유무와 관계없이 지역별로 가나다순으로 보여 준다", () => {
@@ -60,5 +60,18 @@ describe("기간 필터", () => {
     const allowed = { dongs: [], sorts: ["date"] };
     expect(readFilters(JSON.stringify({ period: "3" }), allowed)).toEqual({ period: "3" });
     expect(readFilters(JSON.stringify({ period: "12" }), allowed)).toEqual({});
+  });
+});
+
+describe("readBoardFilters", () => {
+  const dongs = ["41570:구래동", "41570:마산동"];
+  it("기준·가능한 곳만·동을 지금 쓸 수 있는 값만 돌려준다", () => {
+    const raw = JSON.stringify({ basis: "매매", possibleOnly: false, dongs: ["41570:구래동", "11110:없는동"] });
+    expect(readBoardFilters(raw, dongs)).toEqual({ basis: "매매", possibleOnly: false, dongs: ["41570:구래동"] });
+  });
+  it("틀린 값·깨진 값은 버린다", () => {
+    expect(readBoardFilters(JSON.stringify({ basis: "월세", possibleOnly: "y" }), dongs)).toEqual({});
+    expect(readBoardFilters("{", dongs)).toEqual({});
+    expect(readBoardFilters(null, dongs)).toEqual({});
   });
 });

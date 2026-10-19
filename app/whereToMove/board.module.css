@@ -80,3 +80,6 @@
 :global(.dark) .exclude { color: #a1a1a8; }
 :global(.dark) .toast { background: #f2f2f7; color: #1c1c1e; }
 :global(.dark) .toast button { color: #1f6feb; }
+.maybe { background: #fff1d6; color: #8a5300; }
+:global(.dark) .maybe { background: #3a2a0c; color: #ffcc80; }
+.tabs { display: flex; gap: 6px; margin: 0 0 12px; }

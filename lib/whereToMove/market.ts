@@ -25,7 +25,7 @@ export function jeonseEquivalent(d: Priced, convRate: number): number {
 const basisOf = (t: DealType): Market["basis"] => (t === "매매" ? "매매" : "임대");
 const groupKey = (d: { type: DealType; sggCd: string; dong: string; apt: string }) => [d.sggCd, umdOf(d.dong), d.apt, basisOf(d.type)].join("|");
 
-function summarize(values: number[], basis: Market["basis"]): Market {
+export function summarize(values: number[], basis: Market["basis"]): Market {
   const v = [...values].sort((a, b) => a - b);
   const n = v.length;
   const mid = n % 2 ? v[(n - 1) / 2] : (v[n / 2 - 1] + v[n / 2]) / 2;
@@ -57,6 +57,13 @@ export function belowMarket(d: Priced, m: Market | null, convRate: number): bool
   return !!m && jeonseEquivalent(d, convRate) < m.mid * MARKET.lowRatio;
 }
 
+/** 현금을 보증금으로 넣고 나머지(전세 환산 mid - 현금)를 월세로 낼 때의 월세와 판정. 현금이 mid 이상이면 null. */
+export function wolseAt(p: Derived, mid: number) {
+  if (p.cash <= 0 || mid <= p.cash) return null;
+  const rent = Math.round(((mid - p.cash) * p.convRate) / 12);
+  return { rent, ...evaluateDeal(p, { type: "월세", amount: p.cash, rent }) };
+}
+
 const verdict = (e: { ok: boolean; monthly: number; reasons: string[] }) =>
   e.ok ? `적합 · 월 부담 ${man(e.monthly)}` : `부적합(${e.reasons.join(", ")})`;
 
@@ -76,11 +83,10 @@ export function marketLines(p: Derived, d: Priced, m: Market | null): string[] {
   lines.push(`같은 평형 최근 ${MARKET.months}개월 ${label} ${man(m.low)}~${man(m.high)} · 중앙 ${man(m.mid)} · ${m.count}건`);
   const kind = rental ? "전세" : "매매";
   lines.push(`시세 ${kind} ${man(m.mid)}이면: ${verdict(evaluateDeal(p, { type: kind, amount: m.mid, rent: 0 }))}`);
-  if (rental && p.cash > 0 && m.mid > p.cash) {
-    const rent = Math.round(((m.mid - p.cash) * p.convRate) / 12);
-    const e = evaluateDeal(p, { type: "월세", amount: p.cash, rent });
-    const tail = e.ok ? `적합` : `부적합(${e.reasons.join(", ")})`;
-    lines.push(`보증금 ${man(p.cash)} 월세면: 월세 약 ${man(rent)} · 월 부담 ${man(e.monthly)} → ${tail} · 전환율 연 ${Math.round(p.convRate * 1000) / 10}% 가정`);
+  const w = rental ? wolseAt(p, m.mid) : null;
+  if (w) {
+    const tail = w.ok ? `적합` : `부적합(${w.reasons.join(", ")})`;
+    lines.push(`보증금 ${man(p.cash)} 월세면: 월세 약 ${man(w.rent)} · 월 부담 ${man(w.monthly)} → ${tail} · 전환율 연 ${Math.round(p.convRate * 1000) / 10}% 가정`);
   }
   return lines;
 }

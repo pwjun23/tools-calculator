@@ -57,3 +57,21 @@ export function readFilters(raw: string | null, allowed: { dongs: string[]; sort
   if (typeof o.period === "string" && PERIODS.some((p) => p.v === o.period)) out.period = o.period;
   return out;
 }
+
+export type BoardFilters = { basis?: "임대" | "매매"; possibleOnly?: boolean; dongs?: string[] };
+
+/** 단지 시세판에 저장해 둔 필터를 읽는다. 지금 쓸 수 없는 값은 버린다. */
+export function readBoardFilters(raw: string | null, allowedDongs: string[]): BoardFilters {
+  let o: Record<string, unknown>;
+  try {
+    o = raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+  if (!o || typeof o !== "object") return {};
+  const out: BoardFilters = {};
+  if (o.basis === "임대" || o.basis === "매매") out.basis = o.basis;
+  if (typeof o.possibleOnly === "boolean") out.possibleOnly = o.possibleOnly;
+  if (Array.isArray(o.dongs)) out.dongs = o.dongs.filter((d): d is string => typeof d === "string" && allowedDongs.includes(d));
+  return out;
+}

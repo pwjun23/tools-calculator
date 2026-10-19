@@ -14,6 +14,8 @@ import { explainMonthly, type MonthlyCalc } from '@/lib/whereToMove/monthly-help
 import { rentalLines, type Tier } from '@/lib/whereToMove/rental';
 import ThemeToggle from '@/app/components/ThemeToggle';
 import { setExcludedAction } from './actions';
+import ComplexBoard from './ComplexBoard';
+import type { BoardRow } from '@/lib/whereToMove/complex-board';
 import s from './board.module.css';
 
 export type Deal = {
@@ -91,13 +93,17 @@ const routeLinks = (p: Place): { by: 'traffic' | 'car' | 'walk'; text: string }[
     ? [{ by: 'traffic', text: '🚇 길찾기' }, { by: 'car', text: '🚗 길찾기' }]
     : [{ by: p.modes.includes('walk') ? 'walk' : 'car', text: `${p.label} 길찾기` }];
 
-export default function DealBoard({ deals, regions, notice, places = [], calc }: {
+export default function DealBoard({ deals, regions, notice, places = [], calc, board }: {
   deals: Deal[]; regions: { sggCd: string; label: string; dongs: string[] }[]; notice?: { text: string; relogin: boolean };
   places?: Place[];
   calc?: MonthlyCalc;
+  /** 단지 시세판(단지·평형별 최근 6개월 시세와 판정). */
+  board?: { rows: BoardRow[]; sparse: number };
 }) {
   const router = useRouter();
   const [q, setQ] = useState('');
+  // 처음에는 단지 시세판. 거래 한 건 가격은 특수 거래·갱신이 섞여 있어 단지 시세로 먼저 고른다.
+  const [tab, setTab] = useState<'board' | 'deals'>(board ? 'board' : 'deals');
   const [dongs, setDongs] = useState<string[]>([]); // 'sggCd:동' 목록. 비어 있으면 전체.
   const [types, setTypes] = useState<string[]>(['전세']); // 처음에는 전세만 보여 준다.
   const [okOnly, setOkOnly] = useState(true);
@@ -211,6 +217,17 @@ export default function DealBoard({ deals, regions, notice, places = [], calc }:
         </div>
       )}
 
+      {board && (
+        <div className={s.tabs} role="tablist">
+          <button type="button" role="tab" aria-selected={tab === 'board'} className={`${s.chip} ${tab === 'board' ? s.on : ''}`} onClick={() => setTab('board')}>단지 시세</button>
+          <button type="button" role="tab" aria-selected={tab === 'deals'} className={`${s.chip} ${tab === 'deals' ? s.on : ''}`} onClick={() => setTab('deals')}>거래 목록</button>
+        </div>
+      )}
+      {board && tab === 'board' && calc && (
+        <ComplexBoard rows={board.rows} sparse={board.sparse} regions={regions} cash={calc.p.cash} convRate={calc.p.convRate}
+          onShowDeals={(apt) => { setQ(apt); setOkOnly(false); setTypes(['매매', '전세', '월세']); setTab('deals'); window.scrollTo(0, 0); }} />
+      )}
+      {tab === 'deals' && <>
       <section className={s.filters}>
         <input className={s.input} placeholder="단지명 검색" value={q} onChange={e => setQ(e.target.value)} />
         <div className={s.row}>
@@ -338,6 +355,7 @@ export default function DealBoard({ deals, regions, notice, places = [], calc }:
           {okOnly && <><br />&apos;예산 적합만&apos;을 풀면 부적합 거래와 사유를 볼 수 있어요.</>}
         </p>
       )}
+      </>}
     </main>
   );
 }
