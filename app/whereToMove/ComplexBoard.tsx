@@ -82,7 +82,7 @@ export default function ComplexBoard({ rows, sparse, regions, cash, convRate, on
           return (
             <li key={r.key} className={s.card}>
               <div className={s.top}>
-                <a className={s.cardLink} href={naverLandUrl({ region: '', dong: r.dong, apt: r.apt })} target="_blank" rel="noopener noreferrer">
+                <a className={s.cardLink} href={naverLandUrl({ region: regions.find(g => g.sggCd === r.sggCd)?.label ?? '', dong: r.dong, apt: r.apt })} target="_blank" rel="noopener noreferrer">
                   <strong>{r.apt}</strong> <span className={s.muted}>{r.areaLabel}</span>
                 </a>
                 <span className={`${s.badge} ${b.cls}`}>{b.text}</span>
@@ -97,7 +97,7 @@ export default function ComplexBoard({ rows, sparse, regions, cash, convRate, on
                 {r.buy && <p>매매 {range(r.buy)} → {verdict(r.buyVerdict!)}</p>}
               </div>
               <div className={s.links}>
-                <span>네이버 매물 ↗</span>
+                <span>네이버 검색 ↗</span>
                 <button type="button" className={s.exclude} onClick={() => onShowDeals(r.apt)}>이 단지 거래 보기</button>
               </div>
             </li>

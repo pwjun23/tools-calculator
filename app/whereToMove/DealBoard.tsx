@@ -332,7 +332,7 @@ export default function DealBoard({ deals, regions, notice, places = [], calc, b
               </p>
             )}
             <div className={s.links}>
-              <span>네이버 부동산 ↗</span>
+              <span>네이버 검색 ↗</span>
               <a href={hogangUrl(d)} target="_blank" rel="noopener noreferrer">호갱노노 ↗</a>
               <button type="button" className={s.exclude} disabled={excluding} onClick={() => exclude(d)}>이 단지 빼기</button>
               {d.pos && places.flatMap(p => routeLinks(p).map(r => (
