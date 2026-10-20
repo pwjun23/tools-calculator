@@ -10,6 +10,7 @@ import RegionPicker from "./RegionPicker";
 import WorkplacePicker from "./WorkplacePicker";
 import TripPlacePicker from "./TripPlacePicker";
 import ExcludedList from "./ExcludedList";
+import NumInput from "./NumInput";
 
 type NumKey = { [K in keyof Settings]: Settings[K] extends number ? K : never }[keyof Settings];
 type Unit = "만원" | "%" | "년" | "㎡";
@@ -56,9 +57,9 @@ export default function SettingsForm({ initial, initialNotify }: { initial: Sett
   const derived = useMemo(() => deriveParams(s), [s]);
   const limits = useMemo(() => priceLimits(derived), [derived]);
 
-  const setNum = (key: NumKey, unit: Unit, raw: string) => {
+  const setNum = (key: NumKey, unit: Unit, v: number) => {
     setSaved(false);
-    setS({ ...s, [key]: raw === "" ? 0 : fromView(Number(raw), unit) });
+    setS({ ...s, [key]: fromView(v, unit) });
   };
   const setLoan = (i: number, patch: Partial<Loan>) => {
     setSaved(false);
@@ -99,8 +100,8 @@ export default function SettingsForm({ initial, initialNotify }: { initial: Sett
             {sec.fields.map((f) => (
               <label key={f.key} className="flex flex-col gap-1 text-sm">
                 <span>{f.label} ({f.unit})</span>
-                <input className={input} type="number" inputMode="decimal" step="any"
-                  value={toView(s[f.key], f.unit)} onChange={(e) => setNum(f.key, f.unit, e.target.value)} />
+                <NumInput className={input} inputMode="decimal" step="any"
+                  value={toView(s[f.key], f.unit)} onChange={(v) => setNum(f.key, f.unit, v)} />
                 {err(f.key)}
               </label>
             ))}
@@ -122,9 +123,9 @@ export default function SettingsForm({ initial, initialNotify }: { initial: Sett
         {s.loans.map((l, i) => (
           <div key={i} className="mb-3 grid gap-2 rounded-xl border border-slate-200 p-3 sm:grid-cols-3 dark:border-slate-800">
             <input className={input} placeholder="이름" value={l.name} onChange={(e) => setLoan(i, { name: e.target.value })} />
-            <input className={input} type="number" placeholder="잔액(만원)" value={l.balance} onChange={(e) => setLoan(i, { balance: Number(e.target.value) })} />
-            <input className={input} type="number" step="any" placeholder="금리(%)" value={toView(l.rate, "%")} onChange={(e) => setLoan(i, { rate: fromView(Number(e.target.value), "%") })} />
-            <input className={input} type="number" step="any" placeholder="잔여 기간(년)" value={l.years} onChange={(e) => setLoan(i, { years: Number(e.target.value) })} />
+            <NumInput className={input} placeholder="잔액(만원)" value={l.balance} onChange={(v) => setLoan(i, { balance: v })} />
+            <NumInput className={input} step="any" placeholder="금리(%)" value={toView(l.rate, "%")} onChange={(v) => setLoan(i, { rate: fromView(v, "%") })} />
+            <NumInput className={input} step="any" placeholder="잔여 기간(년)" value={l.years} onChange={(v) => setLoan(i, { years: v })} />
             <select className={input} value={l.repayment} onChange={(e) => setLoan(i, { repayment: e.target.value as Loan["repayment"] })}>
               <option value="amortizing">원리금균등</option>
               <option value="bullet">만기일시 (이자만)</option>
@@ -151,9 +152,9 @@ export default function SettingsForm({ initial, initialNotify }: { initial: Sett
         {s.ownedHome.has && (
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="flex flex-col gap-1 text-sm"><span>시세 (만원)</span>
-              <input className={input} type="number" value={s.ownedHome.price} onChange={(e) => setHome({ price: Number(e.target.value) })} /></label>
+              <NumInput className={input} value={s.ownedHome.price} onChange={(v) => setHome({ price: v })} /></label>
             <label className="flex flex-col gap-1 text-sm"><span>매도 비용률 (%)</span>
-              <input className={input} type="number" step="any" value={toView(s.ownedHome.sellCostRate, "%")} onChange={(e) => setHome({ sellCostRate: fromView(Number(e.target.value), "%") })} /></label>
+              <NumInput className={input} step="any" value={toView(s.ownedHome.sellCostRate, "%")} onChange={(v) => setHome({ sellCostRate: fromView(v, "%") })} /></label>
             <label className="flex flex-col gap-1 text-sm"><span>이사할 때</span>
               <select className={input} value={s.ownedHome.planOnMove} onChange={(e) => setHome({ planOnMove: e.target.value as "keep" | "sell" })}>
                 <option value="keep">보유</option><option value="sell">매도</option>

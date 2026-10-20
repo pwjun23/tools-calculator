@@ -10,12 +10,14 @@ import { kakaoLiveKey } from "@/lib/whereToMove/kakao-live";
 import { collectKeys } from "@/lib/whereToMove/molit";
 import { checkRegions } from "@/lib/whereToMove/region-check";
 import { collectDeps, geocodeDeps, getOrCreateSettings, loggedMonths, saveSettings } from "@/lib/whereToMove/repo";
-import { parseSettings } from "@/lib/whereToMove/settings";
+import { inputErrors, parseSettings } from "@/lib/whereToMove/settings";
 
 export async function saveSettingsAction(input: { data: unknown; notifyEnabled: boolean }) {
   const user = await requireUser();
   const parsed = parseSettings(input.data);
   if (!parsed.ok) return parsed;
+  const typo = inputErrors(parsed.settings);
+  if (Object.keys(typo).length) return { ok: false as const, errors: typo };
   // 지역은 법정동 목록에 있는 것만 받고, label 은 목록 값으로 바꾼다.
   const checked = checkRegions(parsed.settings.regions);
   if (!checked.ok) return checked;

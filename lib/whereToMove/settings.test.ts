@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SETTINGS, normalizeStoredSettings, parseSettings, readStoredSettings } from "./settings";
+import { DEFAULT_SETTINGS, inputErrors, normalizeStoredSettings, parseSettings, readStoredSettings } from "./settings";
 
 describe("parseSettings", () => {
   it("기본값은 통과한다", () => {
@@ -176,5 +176,15 @@ describe("excludedApts", () => {
     expect(parseSettings({ ...DEFAULT_SETTINGS, excludedApts: Array(50).fill(ex) }).ok).toBe(true);
     expect(parseSettings({ ...DEFAULT_SETTINGS, excludedApts: Array(51).fill(ex) }).ok).toBe(false);
     expect(parseSettings({ ...DEFAULT_SETTINGS, excludedApts: [{ ...ex, sggCd: "1" }] }).ok).toBe(false);
+  });
+});
+
+describe("inputErrors", () => {
+  it("최소 면적 300㎡까지 허용, 넘으면 오류(0이 안 지워져 750으로 들어가는 실수 막기)", () => {
+    expect(inputErrors({ ...DEFAULT_SETTINGS, minArea: 300 })).toEqual({});
+    expect(inputErrors({ ...DEFAULT_SETTINGS, minArea: 750 })).toEqual({ minArea: "300㎡ 이하로 입력해 주세요" });
+  });
+  it("이미 저장된 큰 값은 그대로 읽는다(설정이 기본값으로 바뀌지 않게)", () => {
+    expect(readStoredSettings({ ...DEFAULT_SETTINGS, minArea: 750 }).valid).toBe(true);
   });
 });

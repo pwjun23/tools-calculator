@@ -164,6 +164,14 @@ export function parseSettings(
   return { ok: false, errors };
 }
 
+/**
+ * 저장할 때만 보는 입력 실수 검사. 스키마에 넣으면 이미 저장된 설정이 읽히지 않고 기본값으로 바뀌어서 따로 둔다.
+ * 최소 면적이 크면 대개 0이 안 지워져 750처럼 들어간 것이다.
+ */
+export function inputErrors(s: Settings): Record<string, string> {
+  return s.minArea > 300 ? { minArea: "300㎡ 이하로 입력해 주세요" } : {};
+}
+
 const LOAN_DEFAULT: Loan = { name: "대출", balance: 0, rate: 0, years: 1, repayment: "amortizing", repaidIfHomeSold: false };
 
 /**
