@@ -87,11 +87,11 @@ const price = (d: Deal) => (d.type === '월세' ? `${won(d.amount)} / ${d.rent}�
 const tripLine = (p: Place, t: Trip) =>
   [`${p.label} ${kmLabel(t.km)}`, ...TRIP_MODES.filter(m => t.times[m]).map(m => `${TRIP_ICON[m]} 약 ${t.times[m]![0]}~${t.times[m]![1]}분`)].join(' · ');
 
-/** 길찾기 링크. 직장은 대중교통·자동차, 학교는 도보를 골랐으면 도보, 아니면 자동차. */
+/** 길찾기 링크. 직장은 대중교통·자동차, 학교·자주 가는 곳은 도보를 골랐으면 도보, 대중교통만 골랐으면 대중교통, 아니면 자동차. */
 const routeLinks = (p: Place): { by: 'traffic' | 'car' | 'walk'; text: string }[] =>
   p.kind === 'work'
     ? [{ by: 'traffic', text: '🚇 길찾기' }, { by: 'car', text: '🚗 길찾기' }]
-    : [{ by: p.modes.includes('walk') ? 'walk' : 'car', text: `${p.label} 길찾기` }];
+    : [{ by: p.modes.includes('walk') ? 'walk' : p.modes.length === 1 && p.modes[0] === 'transit' ? 'traffic' : 'car', text: `${p.label} 길찾기` }];
 
 export default function DealBoard({ deals, regions, notice, places = [], calc, board }: {
   deals: Deal[]; regions: { sggCd: string; label: string; dongs: string[] }[]; notice?: { text: string; relogin: boolean };
@@ -321,7 +321,7 @@ export default function DealBoard({ deals, regions, notice, places = [], calc, b
                 })
               : (
                 <div className={s.commute}>
-                  <span className={s.muted}>{places.length === 1 ? `${places[0].label}까지` : '직장·학교까지'} 거리: {d.site === 'notfound' ? '위치 확인 안 됨' : '위치 확인 중'}</span>
+                  <span className={s.muted}>{places.length === 1 ? `${places[0].label}까지` : '등록한 곳까지'} 거리: {d.site === 'notfound' ? '위치 확인 안 됨' : '위치 확인 중'}</span>
                   <CommuteInfo />
                 </div>
               ))}

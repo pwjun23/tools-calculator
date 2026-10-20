@@ -8,7 +8,7 @@ import type { Loan, Settings } from "@/lib/whereToMove/settings";
 import { saveSettingsAction } from "./actions";
 import RegionPicker from "./RegionPicker";
 import WorkplacePicker from "./WorkplacePicker";
-import SchoolPicker from "./SchoolPicker";
+import TripPlacePicker from "./TripPlacePicker";
 import ExcludedList from "./ExcludedList";
 
 type NumKey = { [K in keyof Settings]: Settings[K] extends number ? K : never }[keyof Settings];
@@ -89,7 +89,8 @@ export default function SettingsForm({ initial, initialNotify }: { initial: Sett
 
       <RegionPicker value={s.regions} errors={errors} onChange={(regions) => { setSaved(false); setS({ ...s, regions }); }} />
       <WorkplacePicker value={s.workplaces} errors={errors} onChange={(workplaces) => { setSaved(false); setS({ ...s, workplaces }); }} />
-      <SchoolPicker value={s.schools} errors={errors} onChange={(schools) => { setSaved(false); setS({ ...s, schools }); }} />
+      <TripPlacePicker kind="schools" value={s.schools} errors={errors} onChange={(schools) => { setSaved(false); setS({ ...s, schools }); }} />
+      <TripPlacePicker kind="places" value={s.places} errors={errors} onChange={(places) => { setSaved(false); setS({ ...s, places }); }} />
 
       {SECTIONS.map((sec) => (
         <section key={sec.title} className="mb-6">

@@ -8,7 +8,7 @@ const input = "rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-70
 const errText = "text-xs text-rose-600 dark:text-rose-400";
 
 /**
- * 도로명주소 API로 주소를 찾아 고른다(직장·학교 공용).
+ * 도로명주소 API로 주소를 찾아 고른다(직장·학교·자주 가는 곳 공용).
  * 좌표 API를 못 쓰는 동안(임시 카카오 방식)에는 at 이 비어 있다.
  */
 export default function AddressSearch({ placeholder, onPick }: {

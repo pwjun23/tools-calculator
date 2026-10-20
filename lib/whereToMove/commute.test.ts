@@ -122,6 +122,13 @@ describe("toggleMode", () => {
   it("마지막 하나는 끄지 않는다", () => expect(toggleMode(["walk"], "walk")).toEqual(["walk"]));
 });
 
+describe("tripChoices 자주 가는 곳", () => {
+  it("10·20·30·45·60분", () => {
+    const g = tripChoices([{ id: "p0", kind: "place", label: "가상교회", lat: 37.6, lng: 126.7, modes: ["car"] }]);
+    expect(g[0].options.map((o) => o.value)).toEqual(["p0:car:10", "p0:car:20", "p0:car:30", "p0:car:45", "p0:car:60"]);
+  });
+});
+
 describe("tripChoices 장소 구분", () => {
   it("묶음마다 장소 id 를 주고, 같은 이름이면 번호를 붙인다", () => {
     const two: Place[] = [

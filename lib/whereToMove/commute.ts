@@ -17,10 +17,10 @@ export type Trip = {
   km: number;
   times: Partial<Record<TripMode, [number, number]>>;
 };
-/** 직장·학교. id 는 직장 `w`, 학교 `s0`~`s3`. */
+/** 직장·학교·자주 가는 곳. id 는 직장 `w`, 학교 `s0`~`s3`, 자주 가는 곳 `p0`~`p3`. */
 export type Place = LatLng & {
   id: string;
-  kind: "work" | "school";
+  kind: "work" | "school" | "place";
   label: string;
   modes: TripMode[];
 };
@@ -99,9 +99,9 @@ export function kmLabel(km: number): string {
 export function commuteHelp(): string[] {
   const A = COMMUTE_ASSUMPTIONS;
   return [
-    "이 시간은 길찾기 결과가 아닙니다. 단지와 직장·학교 사이의 직선거리로 추정한 어림값입니다.",
+    "이 시간은 길찾기 결과가 아닙니다. 단지와 직장·학교·자주 가는 곳 사이의 직선거리로 추정한 어림값입니다.",
     `계산: 실제 길은 직선보다 길어서 직선거리 × ${A.roadFactor}을 도로 거리로 봅니다. 자가용은 시속 ${A.car.kmh[0]}~${A.car.kmh[1]}km에 ${A.car.extraMin}분, 대중교통은 시속 ${A.transit.kmh[0]}~${A.transit.kmh[1]}km에 걷기·기다리기 ${A.transit.extraMin[0]}~${A.transit.extraMin[1]}분을 더했습니다.`,
-    `도보는 아이 걸음으로 시속 ${A.walk.kmh[0]}~${A.walk.kmh[1]}km로 봤습니다. 횡단보도·육교는 반영하지 않았습니다.`,
+    `도보는 아이 걸음으로(자주 가는 곳도 같은 기준) 시속 ${A.walk.kmh[0]}~${A.walk.kmh[1]}km로 봤습니다. 횡단보도·육교는 반영하지 않았습니다.`,
     `통학차량은 노선과 타는 곳을 알 수 없어 자가용 시간의 ${A.shuttle.factor[0]}~${A.shuttle.factor[1]}배로 잡았습니다. 타는 곳까지 걷는 시간은 빠져 있습니다.`,
     "반영 안 된 것: 실제 노선과 환승, 배차 간격, 출퇴근 혼잡(예: 김포골드라인), 신호·정체, 주차.",
     "강·바다·철길을 돌아가야 하거나 다리·IC가 먼 곳은 실제와 크게 다를 수 있습니다.",
@@ -121,10 +121,11 @@ export function kakaoRouteUrl(
   return `https://map.kakao.com/link/by/${by}/${placeName(from.name)},${from.lat},${from.lng}/${placeName(to.name)},${to.lat},${to.lng}`;
 }
 
-/** 통근 필터 한 칸, 장소별 묶음. 직장은 김포→서울처럼 먼 곳도 고를 수 있게 120분까지, 학교는 30분까지. */
+/** 통근 필터 한 칸, 장소별 묶음. 직장은 김포→서울처럼 먼 곳도 고를 수 있게 120분까지, 학교는 30분까지, 자주 가는 곳(교회 등)은 60분까지. */
 const LIMITS = {
   work: [30, 45, 60, 90, 120],
   school: [10, 15, 20, 30],
+  place: [10, 20, 30, 45, 60],
 } as const;
 
 export function tripChoices(

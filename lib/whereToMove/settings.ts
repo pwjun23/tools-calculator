@@ -24,6 +24,9 @@ export const MAX_WORKPLACES = 1;
 /** 학교 수. 아이 여럿·학교급이 다를 수 있어 4곳까지. */
 export const MAX_SCHOOLS = 4;
 export const SCHOOL_MODES = ["walk", "shuttle", "car", "transit"] as const;
+/** 자주 가는 곳(교회 등). 통학차량은 없다. */
+export const MAX_PLACES = 4;
+export const PLACE_MODES = ["walk", "car", "transit"] as const;
 
 /** 목록·알림에서 뺄 단지 수. */
 export const MAX_EXCLUDED = 50;
@@ -45,18 +48,22 @@ const workplaceSchema = z
   })
   .refine((w) => (w.lat === undefined) === (w.lng === undefined), { message: "위도와 경도는 함께 있어야 합니다", path: ["lat"] });
 
-const schoolSchema = z
-  .object({
-    label: z.string().trim().min(1).max(20),
-    address: z.string().trim().min(1).max(200),
-    lat: z.number().min(33).max(39).optional(),
-    lng: z.number().min(124).max(132).optional(),
-    modes: z
-      .array(z.enum(SCHOOL_MODES))
-      .min(1, { message: "수단을 하나 이상 골라 주세요" })
-      .refine((m) => new Set(m).size === m.length, { message: "같은 수단을 두 번 고를 수 없습니다" }),
-  })
-  .refine((w) => (w.lat === undefined) === (w.lng === undefined), { message: "위도와 경도는 함께 있어야 합니다", path: ["lat"] });
+/** 학교·자주 가는 곳. 고를 수 있는 수단만 다르다. */
+const tripPlaceSchema = <M extends readonly [string, ...string[]]>(modes: M) =>
+  z
+    .object({
+      label: z.string().trim().min(1).max(20),
+      address: z.string().trim().min(1).max(200),
+      lat: z.number().min(33).max(39).optional(),
+      lng: z.number().min(124).max(132).optional(),
+      modes: z
+        .array(z.enum(modes))
+        .min(1, { message: "수단을 하나 이상 골라 주세요" })
+        .refine((m) => new Set(m).size === m.length, { message: "같은 수단을 두 번 고를 수 없습니다" }),
+    })
+    .refine((w) => (w.lat === undefined) === (w.lng === undefined), { message: "위도와 경도는 함께 있어야 합니다", path: ["lat"] });
+const schoolSchema = tripPlaceSchema(SCHOOL_MODES);
+const placeSchema = tripPlaceSchema(PLACE_MODES);
 
 const settingsSchema = z.object({
   regions: z
@@ -72,6 +79,7 @@ const settingsSchema = z.object({
     .refine((rs) => new Set(rs.map((r) => r.sggCd)).size === rs.length, { message: "같은 시·군·구를 두 번 고를 수 없습니다" }),
   workplaces: z.array(workplaceSchema).max(MAX_WORKPLACES),
   schools: z.array(schoolSchema).max(MAX_SCHOOLS),
+  places: z.array(placeSchema).max(MAX_PLACES),
   /** 목록·알림에서 뺄 단지(예: 지금 사는 단지). 시세 계산에는 그대로 쓴다. */
   excludedApts: z.array(excludedAptSchema).max(MAX_EXCLUDED),
   cash: money,
@@ -106,6 +114,7 @@ export type Settings = z.infer<typeof settingsSchema>;
 export type Loan = z.infer<typeof loanSchema>;
 export type Workplace = z.infer<typeof workplaceSchema>;
 export type School = z.infer<typeof schoolSchema>;
+export type FrequentPlace = z.infer<typeof placeSchema>;
 export type ExcludedApt = z.infer<typeof excludedAptSchema>;
 
 /** 처음 로그인한 사용자의 설정. 실제 개인 값이 아닌 일반적인 출발점이다. */
@@ -113,6 +122,7 @@ export const DEFAULT_SETTINGS: Settings = {
   regions: [{ sggCd: "41570", label: "경기 김포시", dongs: ["구래동", "마산동", "양촌읍"] }],
   workplaces: [],
   schools: [],
+  places: [],
   excludedApts: [],
   cash: 5000,
   monthlyBudget: 150,

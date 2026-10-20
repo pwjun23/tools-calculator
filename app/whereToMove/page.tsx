@@ -43,7 +43,7 @@ export default async function Page() {
   const tiersAt = rentalTiers(stored, marketFrom);
   // 단지·평형별 시세판. 같은 기준(최근 6개월 신규 계약)으로 판정한다.
   const board = complexBoard(stored, settings, p, marketFrom);
-  // 임시(WTM_KAKAO_LIVE): 좌표가 없는 직장·학교·단지는 카카오로 그때그때 구한다. 결과는 저장하지 않는다.
+  // 임시(WTM_KAKAO_LIVE): 좌표가 없는 직장·학교·자주 가는 곳·단지는 카카오로 그때그때 구한다. 결과는 저장하지 않는다.
   const live = kakaoLiveKey();
   const locate = async (a: { address: string; lat?: number; lng?: number }): Promise<LatLng | null> => {
     if (a.lat !== undefined && a.lng !== undefined) return { lat: a.lat, lng: a.lng };
@@ -54,6 +54,7 @@ export default async function Page() {
   const wanted: (Omit<Place, "lat" | "lng"> & { src: { address: string; lat?: number; lng?: number } })[] = [
     ...(wp ? [{ id: "w", kind: "work" as const, label: wp.label, modes: ["transit" as const, "car" as const], src: wp }] : []),
     ...settings.schools.map((sc, i) => ({ id: `s${i}`, kind: "school" as const, label: sc.label, modes: sc.modes, src: sc })),
+    ...settings.places.map((pl, i) => ({ id: `p${i}`, kind: "place" as const, label: pl.label, modes: [...pl.modes], src: pl })),
   ];
   // 좌표를 못 구한 장소는 뺀다(나머지 장소는 그대로 보인다).
   const located = await Promise.all(wanted.map(async ({ src, ...p }): Promise<Place | null> => {
