@@ -188,3 +188,23 @@ describe("inputErrors", () => {
     expect(readStoredSettings({ ...DEFAULT_SETTINGS, minArea: 750 }).valid).toBe(true);
   });
 });
+
+describe("busRoutes", () => {
+  const stop = { name: "가상정문", time: "08:02", apts: [{ sggCd: "11111", dong: "가동", apt: "가상단지" }] };
+  const route = { label: "1호차", dest: "학교", arrive: "08:55", stops: [stop] };
+  it("기본값은 빈 목록, 예전 설정도 빈 목록", () => {
+    expect(DEFAULT_SETTINGS.busRoutes).toEqual([]);
+    const { busRoutes: _b, ...old } = DEFAULT_SETTINGS;
+    expect(readStoredSettings(old).settings.busRoutes).toEqual([]);
+  });
+  it("노선 4개·정류장 15개·연결 단지 5개까지", () => {
+    expect(parseSettings({ ...DEFAULT_SETTINGS, busRoutes: Array(4).fill(route) }).ok).toBe(true);
+    expect(parseSettings({ ...DEFAULT_SETTINGS, busRoutes: Array(5).fill(route) }).ok).toBe(false);
+    expect(parseSettings({ ...DEFAULT_SETTINGS, busRoutes: [{ ...route, stops: Array(16).fill(stop) }] }).ok).toBe(false);
+    expect(parseSettings({ ...DEFAULT_SETTINGS, busRoutes: [{ ...route, stops: [{ ...stop, apts: Array(6).fill(stop.apts[0]) }] }] }).ok).toBe(false);
+  });
+  it("시각은 HH:MM", () => {
+    expect(parseSettings({ ...DEFAULT_SETTINGS, busRoutes: [{ ...route, arrive: "8:55" }] }).ok).toBe(false);
+    expect(parseSettings({ ...DEFAULT_SETTINGS, busRoutes: [{ ...route, stops: [{ ...stop, time: "24:00" }] }] }).ok).toBe(false);
+  });
+});

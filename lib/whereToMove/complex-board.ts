@@ -27,6 +27,8 @@ export type BoardRow = {
   /** 매매 중앙값 그대로 살 때 */
   buyVerdict: Verdict | null;
   status: RentStatus | null;
+  /** 통학버스 탑승 줄(설정 노선에 연결된 단지). 화면에서 붙인다. */
+  bus?: string[];
 };
 
 const verdictOf = (e: Verdict): Verdict => ({ ok: e.ok, monthly: e.monthly, reasons: e.reasons });

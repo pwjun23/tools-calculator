@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { estimateModes, straightKm, type LatLng, type Place } from "@/lib/whereToMove/commute";
+import { busIndex } from "@/lib/whereToMove/bus";
 import { complexBoard } from "@/lib/whereToMove/complex-board";
 import { complexKey } from "@/lib/whereToMove/complexes";
 import { requireUser } from "@/lib/whereToMove/current-user";
@@ -42,7 +43,10 @@ export default async function Page() {
   // 임대주택은 운영사가 정한 보증금/월세 조합이 있어 많이 쓰인 조합을 보여 준다.
   const tiersAt = rentalTiers(stored, marketFrom);
   // 단지·평형별 시세판. 같은 기준(최근 6개월 신규 계약)으로 판정한다.
-  const board = complexBoard(stored, settings, p, marketFrom);
+  // 통학버스 노선에 연결한 단지면 탑승 줄을 붙인다.
+  const busAt = busIndex(settings.busRoutes);
+  const built = complexBoard(stored, settings, p, marketFrom);
+  const board = { ...built, rows: built.rows.map((r) => (busAt(r).length ? { ...r, bus: busAt(r) } : r)) };
   // 임시(WTM_KAKAO_LIVE): 좌표가 없는 직장·학교·자주 가는 곳·단지는 카카오로 그때그때 구한다. 결과는 저장하지 않는다.
   const live = kakaoLiveKey();
   const locate = async (a: { address: string; lat?: number; lng?: number }): Promise<LatLng | null> => {
@@ -82,6 +86,7 @@ export default async function Page() {
       ...(d.term ? { term: d.term } : {}),
       ...(isRentalComplex(d.apt) ? { rental: tiersAt(d) } : {}),
       ...(places.length ? tripsOf(sites.get(complexKey(d)), places) : {}),
+      ...(busAt(d).length ? { bus: busAt(d) } : {}),
     };
   });
 
@@ -90,5 +95,5 @@ export default async function Page() {
 
   // 월 부담 ⓘ 계산용. 거래마다 설명 문장을 보내면 목록이 커져서, 값만 한 번 보내고 화면에서 만든다.
   const calc: MonthlyCalc = { p, rates: { mortgageRate: settings.mortgageRate, mortgageYears: settings.mortgageYears } };
-  return <DealBoard deals={deals} regions={settings.regions} notice={notice} places={places} calc={calc} board={board} />;
+  return <DealBoard deals={deals} regions={settings.regions} notice={notice} places={places} calc={calc} board={board} hasBus={settings.busRoutes.some((r) => r.stops.some((st) => st.apts.length))} />;
 }

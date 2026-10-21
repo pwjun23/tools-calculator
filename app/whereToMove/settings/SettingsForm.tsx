@@ -11,6 +11,7 @@ import WorkplacePicker from "./WorkplacePicker";
 import TripPlacePicker from "./TripPlacePicker";
 import ExcludedList from "./ExcludedList";
 import NumInput from "./NumInput";
+import BusRoutePicker from "./BusRoutePicker";
 
 type NumKey = { [K in keyof Settings]: Settings[K] extends number ? K : never }[keyof Settings];
 type Unit = "만원" | "%" | "년" | "㎡";
@@ -46,7 +47,11 @@ const fromView = (v: number, unit: Unit) => (unit === "%" ? v / 100 : v);
 const fmt = (v: number) => (v >= 1e8 ? "제한 없음" : `${Math.round(v * 10) / 10}`);
 const input = "w-full rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-950";
 
-export default function SettingsForm({ initial, initialNotify }: { initial: Settings; initialNotify: boolean }) {
+export default function SettingsForm({ initial, initialNotify, complexes }: {
+  initial: Settings; initialNotify: boolean;
+  /** 통학버스 정류장에 연결할 단지 후보(설정한 동, 거래가 있었던 단지). */
+  complexes: { sggCd: string; dong: string; apt: string }[];
+}) {
   const [s, setS] = useState<Settings>(initial);
   const [notify, setNotify] = useState(initialNotify);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -92,6 +97,7 @@ export default function SettingsForm({ initial, initialNotify }: { initial: Sett
       <WorkplacePicker value={s.workplaces} errors={errors} onChange={(workplaces) => { setSaved(false); setS({ ...s, workplaces }); }} />
       <TripPlacePicker kind="schools" value={s.schools} errors={errors} onChange={(schools) => { setSaved(false); setS({ ...s, schools }); }} />
       <TripPlacePicker kind="places" value={s.places} errors={errors} onChange={(places) => { setSaved(false); setS({ ...s, places }); }} />
+      <BusRoutePicker value={s.busRoutes} errors={errors} complexes={complexes} onChange={(busRoutes) => { setSaved(false); setS({ ...s, busRoutes }); }} />
 
       {SECTIONS.map((sec) => (
         <section key={sec.title} className="mb-6">

@@ -20,12 +20,13 @@ function badgeOf(r: BoardRow, basis: '임대' | '매매'): { text: string; cls: 
   return r.status === '전세 가능' ? { text: r.status, cls: s.ok } : r.status === '월세면 가능' ? { text: r.status, cls: s.maybe } : { text: '어려움', cls: s.no };
 }
 
-export default function ComplexBoard({ rows, sparse, regions, cash, convRate, onShowDeals }: {
+export default function ComplexBoard({ rows, sparse, regions, cash, convRate, onShowDeals, hasBus = false }: {
   rows: BoardRow[]; sparse: number; regions: { sggCd: string; label: string; dongs: string[] }[];
-  cash: number; convRate: number; onShowDeals: (apt: string) => void;
+  cash: number; convRate: number; onShowDeals: (apt: string) => void; hasBus?: boolean;
 }) {
   const [basis, setBasis] = useState<'임대' | '매매'>('임대');
   const [possibleOnly, setPossibleOnly] = useState(true);
+  const [busOnly, setBusOnly] = useState(false);
   const [dongs, setDongs] = useState<string[]>([]);
   const [restored, setRestored] = useState(false);
   const dongGroups = useMemo(() => groupDongs(regions), [regions]);
@@ -37,6 +38,7 @@ export default function ComplexBoard({ rows, sparse, regions, cash, convRate, on
       /* eslint-disable react-hooks/set-state-in-effect -- 저장된 값으로 한 번 맞춘다 */
       if (f.basis) setBasis(f.basis);
       if (f.possibleOnly !== undefined) setPossibleOnly(f.possibleOnly);
+      if (f.busOnly !== undefined) setBusOnly(f.busOnly);
       if (f.dongs) setDongs(f.dongs);
     } catch { /* 저장소 사용 불가 */ }
     setRestored(true);
@@ -45,12 +47,13 @@ export default function ComplexBoard({ rows, sparse, regions, cash, convRate, on
 
   useEffect(() => {
     if (!restored) return;
-    try { localStorage.setItem(BOARD_KEY, JSON.stringify({ basis, possibleOnly, dongs })); } catch { /* 저장소 사용 불가 */ }
-  }, [restored, basis, possibleOnly, dongs]);
+    try { localStorage.setItem(BOARD_KEY, JSON.stringify({ basis, possibleOnly, dongs, busOnly })); } catch { /* 저장소 사용 불가 */ }
+  }, [restored, basis, possibleOnly, dongs, busOnly]);
 
   const shown = useMemo(() => sortBoard(rows, basis).filter(r =>
     (!dongs.length || dongs.includes(`${r.sggCd}:${r.dong}`)) &&
-    (!possibleOnly || (basis === '임대' ? r.status !== '어려움' : r.buyVerdict!.ok))), [rows, basis, possibleOnly, dongs]);
+    (!hasBus || !busOnly || !!r.bus) &&
+    (!possibleOnly || (basis === '임대' ? r.status !== '어려움' : r.buyVerdict!.ok))), [rows, basis, possibleOnly, dongs, hasBus, busOnly]);
 
   return (
     <>
@@ -68,6 +71,11 @@ export default function ComplexBoard({ rows, sparse, regions, cash, convRate, on
           <label className={s.check}>
             <input type="checkbox" checked={possibleOnly} onChange={e => setPossibleOnly(e.target.checked)} /> 가능한 곳만
           </label>
+          {hasBus && (
+            <label className={s.check}>
+              <input type="checkbox" checked={busOnly} onChange={e => setBusOnly(e.target.checked)} /> 통학버스 단지만
+            </label>
+          )}
         </div>
       </section>
 
@@ -95,6 +103,7 @@ export default function ComplexBoard({ rows, sparse, regions, cash, convRate, on
                   {r.wolse && <p>보증금 {man(cash)} 월세면: 월세 약 {man(r.wolse.rent)} · 월 부담 {man(r.wolse.monthly)} → {r.wolse.ok ? '적합' : `부적합(${r.wolse.reasons.join(', ')})`}</p>}
                 </>}
                 {r.buy && <p>매매 {range(r.buy)} → {verdict(r.buyVerdict!)}</p>}
+                {r.bus?.map((t, j) => <p key={`bus${j}`}>{t}</p>)}
               </div>
               <div className={s.links}>
                 <span>네이버 검색 ↗</span>

@@ -2,6 +2,8 @@ import { and, asc, desc, eq, gt, gte, inArray, sql } from "drizzle-orm";
 import { db } from "./db";
 import { account, wtmCollectLog, wtmComplexes, wtmDeals, wtmNotifyLog, wtmSettings, type ComplexStatus } from "./schema";
 import { complexKey, complexSeeds, type ComplexSeed } from "./complexes";
+import { umdOf } from "./dong";
+import { excludedKey } from "./exclude";
 import { DEFAULT_SETTINGS, normalizeStoredSettings, readStoredSettings, type Settings } from "./settings";
 import { fetchDeals, uniqueByKey } from "./molit";
 import type { CollectDeps } from "./collect";
@@ -179,6 +181,18 @@ export async function listComplexes(sggCds: string[]) {
   const rows = await db.select().from(wtmComplexes).where(inArray(wtmComplexes.sggCd, sggCds));
   for (const r of rows) out.set(complexKey(r), { status: r.status, lat: r.lat, lng: r.lng });
   return out;
+}
+
+/** 설정 화면 단지 고르기용 이름 목록. 읍·면·동 단위(리 이름 뺌)로 겹침 없이. */
+export async function listComplexNames(sggCds: string[]): Promise<{ sggCd: string; dong: string; apt: string }[]> {
+  if (!sggCds.length) return [];
+  const rows = await db.select({ sggCd: wtmComplexes.sggCd, dong: wtmComplexes.dong, apt: wtmComplexes.apt }).from(wtmComplexes).where(inArray(wtmComplexes.sggCd, sggCds));
+  const out = new Map<string, { sggCd: string; dong: string; apt: string }>();
+  for (const r of rows) {
+    const a = { sggCd: r.sggCd, dong: umdOf(r.dong), apt: r.apt };
+    out.set(excludedKey(a), a);
+  }
+  return [...out.values()].sort((x, y) => x.apt.localeCompare(y.apt, "ko"));
 }
 
 export async function resetNotFound(): Promise<number> {

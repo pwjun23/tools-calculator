@@ -28,6 +28,8 @@ export type Deal = {
   term?: string;
   /** 임대주택 단지면 같은 평형에서 많이 쓰인 보증금/월세 조합(없으면 빈 목록). 일반 단지는 없음. */
   rental?: Tier[];
+  /** 통학버스 탑승 줄(설정 노선에 연결된 단지만). */
+  bus?: string[];
   trips?: (Trip & { id: string })[] | null;
   pos?: LatLng;
   site?: 'ok' | 'pending' | 'notfound';
@@ -93,12 +95,14 @@ const routeLinks = (p: Place): { by: 'traffic' | 'car' | 'walk'; text: string }[
     ? [{ by: 'traffic', text: '🚇 길찾기' }, { by: 'car', text: '🚗 길찾기' }]
     : [{ by: p.modes.includes('walk') ? 'walk' : p.modes.length === 1 && p.modes[0] === 'transit' ? 'traffic' : 'car', text: `${p.label} 길찾기` }];
 
-export default function DealBoard({ deals, regions, notice, places = [], calc, board }: {
+export default function DealBoard({ deals, regions, notice, places = [], calc, board, hasBus = false }: {
   deals: Deal[]; regions: { sggCd: string; label: string; dongs: string[] }[]; notice?: { text: string; relogin: boolean };
   places?: Place[];
   calc?: MonthlyCalc;
   /** 단지 시세판(단지·평형별 최근 6개월 시세와 판정). */
   board?: { rows: BoardRow[]; sparse: number };
+  /** 통학버스 노선에 연결한 단지가 있으면 '통학버스 단지만' 필터를 보여 준다. */
+  hasBus?: boolean;
 }) {
   const router = useRouter();
   const [q, setQ] = useState('');
@@ -113,6 +117,7 @@ export default function DealBoard({ deals, regions, notice, places = [], calc, b
   const [commute, setCommute] = useState('off');
   const [period, setPeriod] = useState('6'); // 오래된 계약일수록 지금 시세와 차이가 커서 처음에는 최근 6개월.
   const [hideRental, setHideRental] = useState(false);
+  const [busOnly, setBusOnly] = useState(false);
   // 방금 뺀 단지(서버 새로고침 전에도 바로 숨김)와 되돌리기 안내.
   const [hidden, setHidden] = useState<string[]>([]);
   const [undo, setUndo] = useState<{ ref: Pick<Deal, 'sggCd' | 'dong' | 'apt'>; text: string } | null>(null);
@@ -138,6 +143,7 @@ export default function DealBoard({ deals, regions, notice, places = [], calc, b
       if (f.commute) setCommute(f.commute);
       if (f.period) setPeriod(f.period);
       if (f.hideRental !== undefined) setHideRental(f.hideRental);
+      if (f.busOnly !== undefined) setBusOnly(f.busOnly);
     } catch { /* 저장소 사용 불가 */ }
     setRestored(true);
     /* eslint-enable react-hooks/set-state-in-effect */
@@ -146,9 +152,9 @@ export default function DealBoard({ deals, regions, notice, places = [], calc, b
   useEffect(() => {
     if (!restored) return;
     try {
-      localStorage.setItem(FILTER_KEY, JSON.stringify({ dongs, types, okOnly, minArea, maxMonthly, sort, commute, period, hideRental }));
+      localStorage.setItem(FILTER_KEY, JSON.stringify({ dongs, types, okOnly, minArea, maxMonthly, sort, commute, period, hideRental, busOnly }));
     } catch { /* 저장소 사용 불가 */ }
-  }, [restored, dongs, types, okOnly, minArea, maxMonthly, sort, commute, period, hideRental]);
+  }, [restored, dongs, types, okOnly, minArea, maxMonthly, sort, commute, period, hideRental, busOnly]);
   const multi = regions.length > 1;
 
   const choice = useMemo(() => parseTripChoice(commute, places), [commute, places]);
@@ -161,6 +167,7 @@ export default function DealBoard({ deals, regions, notice, places = [], calc, b
       types.includes(d.type) &&
       (!okOnly || d.ok) &&
       (!hideRental || !d.rental) &&
+      (!hasBus || !busOnly || !!d.bus) &&
       !hidden.includes(excludedKey(d)) &&
       (!minArea || d.area >= Number(minArea)) &&
       (!maxMonthly || d.monthly <= Number(maxMonthly)) &&
@@ -173,7 +180,7 @@ export default function DealBoard({ deals, regions, notice, places = [], calc, b
       area: (a, b) => b.area - a.area,
     };
     return out.sort(by[sort]);
-  }, [deals, q, dongs, types, okOnly, minArea, maxMonthly, choice, sort, period, hideRental, hidden]);
+  }, [deals, q, dongs, types, okOnly, minArea, maxMonthly, choice, sort, period, hideRental, hidden, hasBus, busOnly]);
 
   const exclude = (d: Deal) =>
     startExclude(async () => {
@@ -224,7 +231,7 @@ export default function DealBoard({ deals, regions, notice, places = [], calc, b
         </div>
       )}
       {board && tab === 'board' && calc && (
-        <ComplexBoard rows={board.rows} sparse={board.sparse} regions={regions} cash={calc.p.cash} convRate={calc.p.convRate}
+        <ComplexBoard rows={board.rows} sparse={board.sparse} regions={regions} cash={calc.p.cash} convRate={calc.p.convRate} hasBus={hasBus}
           onShowDeals={(apt) => { setQ(apt); setOkOnly(false); setTypes(['매매', '전세', '월세']); setTab('deals'); window.scrollTo(0, 0); }} />
       )}
       {tab === 'deals' && <>
@@ -256,6 +263,11 @@ export default function DealBoard({ deals, regions, notice, places = [], calc, b
           <label className={s.check}>
             <input type="checkbox" checked={hideRental} onChange={e => setHideRental(e.target.checked)} /> 임대주택 숨기기
           </label>
+          {hasBus && (
+            <label className={s.check}>
+              <input type="checkbox" checked={busOnly} onChange={e => setBusOnly(e.target.checked)} /> 통학버스 단지만
+            </label>
+          )}
         </div>
         <div className={s.row}>
           <input className={s.small} inputMode="numeric" placeholder="최소 면적(㎡)" value={minArea} onChange={e => setMinArea(e.target.value)} />
@@ -299,6 +311,7 @@ export default function DealBoard({ deals, regions, notice, places = [], calc, b
             </div>
             <div className={s.meta}>{multi ? `${d.region} ${d.dong}` : d.dong} · {d.type} · {d.area}㎡ · {d.floor}층 · {d.date}{d.term && ` · 계약 기간 ${d.term}`}</div>
             <Nums d={d} calc={calc} />
+            {d.bus && <div className={s.market}>{d.bus.map((t, j) => <p key={j}>{t}</p>)}</div>}
             {d.rental && (
               <div className={s.market}>
                 {rentalLines(d.rental).map((t, j) => <p key={j}>{t}</p>)}

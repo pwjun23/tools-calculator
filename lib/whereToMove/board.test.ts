@@ -37,6 +37,8 @@ describe("readFilters", () => {
   it("임대주택 숨기기는 참·거짓만 받는다", () => {
     expect(readFilters(JSON.stringify({ hideRental: true }), { dongs, sorts })).toEqual({ hideRental: true });
     expect(readFilters(JSON.stringify({ hideRental: "1" }), { dongs, sorts })).toEqual({});
+    expect(readFilters(JSON.stringify({ busOnly: true }), { dongs, sorts })).toEqual({ busOnly: true });
+    expect(readFilters(JSON.stringify({ busOnly: 1 }), { dongs, sorts })).toEqual({});
   });
   it("모르는 정렬·틀린 형식은 빼고, 깨진 값·없음은 빈 객체", () => {
     expect(readFilters(JSON.stringify({ sort: "x", okOnly: "yes", minArea: 75 }), { dongs, sorts })).toEqual({});
@@ -72,6 +74,8 @@ describe("readBoardFilters", () => {
   it("틀린 값·깨진 값은 버린다", () => {
     expect(readBoardFilters(JSON.stringify({ basis: "월세", possibleOnly: "y" }), dongs)).toEqual({});
     expect(readBoardFilters("{", dongs)).toEqual({});
+    expect(readBoardFilters(JSON.stringify({ busOnly: true }), dongs)).toEqual({ busOnly: true });
+    expect(readBoardFilters(JSON.stringify({ busOnly: "y" }), dongs)).toEqual({});
     expect(readBoardFilters(null, dongs)).toEqual({});
   });
 });

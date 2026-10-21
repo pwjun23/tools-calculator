@@ -30,11 +30,25 @@ export const PLACE_MODES = ["walk", "car", "transit"] as const;
 
 /** 목록·알림에서 뺄 단지 수. */
 export const MAX_EXCLUDED = 50;
+/** 통학버스 노선. 계정 설정에만 둔다(학교·노선은 개인 정보). */
+export const MAX_BUS_ROUTES = 4;
+export const MAX_BUS_STOPS = 15;
+export const MAX_STOP_APTS = 5;
 
 const excludedAptSchema = z.object({
   sggCd: z.string().regex(/^\d{5}$/),
   dong: z.string().trim().min(1).max(30),
   apt: z.string().trim().min(1).max(100),
+});
+
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, { message: "시각은 08:02처럼 입력해 주세요" });
+const busRouteSchema = z.object({
+  label: z.string().trim().min(1).max(20),
+  dest: z.string().trim().min(1).max(20),
+  arrive: hhmm,
+  stops: z
+    .array(z.object({ name: z.string().trim().min(1).max(40), time: hhmm, apts: z.array(excludedAptSchema).max(MAX_STOP_APTS) }))
+    .max(MAX_BUS_STOPS),
 });
 
 // 좌표는 도로명주소 좌표 API로 구해 저장한다. 그 키 승인 전 임시(카카오 실시간)에는 좌표 없이 주소만 저장하고,
@@ -82,6 +96,7 @@ const settingsSchema = z.object({
   places: z.array(placeSchema).max(MAX_PLACES),
   /** 목록·알림에서 뺄 단지(예: 지금 사는 단지). 시세 계산에는 그대로 쓴다. */
   excludedApts: z.array(excludedAptSchema).max(MAX_EXCLUDED),
+  busRoutes: z.array(busRouteSchema).max(MAX_BUS_ROUTES),
   cash: money,
   monthlyBudget: z.number().positive(),
   monthlyMgmt: money,
@@ -116,6 +131,7 @@ export type Workplace = z.infer<typeof workplaceSchema>;
 export type School = z.infer<typeof schoolSchema>;
 export type FrequentPlace = z.infer<typeof placeSchema>;
 export type ExcludedApt = z.infer<typeof excludedAptSchema>;
+export type BusRoute = z.infer<typeof busRouteSchema>;
 
 /** 처음 로그인한 사용자의 설정. 실제 개인 값이 아닌 일반적인 출발점이다. */
 export const DEFAULT_SETTINGS: Settings = {
@@ -124,6 +140,7 @@ export const DEFAULT_SETTINGS: Settings = {
   schools: [],
   places: [],
   excludedApts: [],
+  busRoutes: [],
   cash: 5000,
   monthlyBudget: 150,
   monthlyMgmt: 25,
