@@ -56,7 +56,7 @@ export default function TripPlacePicker<T extends Item>({ kind, value, onChange,
       ))}
       {value.length < k.max && (
         <AddressSearch placeholder={k.search}
-          onPick={(c, at) => onChange([...value, { label: (c.bdNm || k.fallback).slice(0, 20), address: c.roadAddr, modes: k.first, ...(at ?? {}) } as T])} />
+          onPick={(c, at) => onChange([...value, { label: (c.bdNm || k.fallback).slice(0, 20), address: c.roadAddr, modes: k.first, ...at } as T])} />
       )}
     </section>
   );

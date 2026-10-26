@@ -26,7 +26,7 @@ export default function WorkplacePicker({ value, onChange, errors }: { value: Wo
         </div>
       ) : null}
       <AddressSearch placeholder={wp ? "다른 주소로 바꾸기 (도로명·건물 이름)" : "도로명·건물 이름 (예: 사우중로 1)"}
-        onPick={(c, at) => onChange([{ label: wp?.label ?? "직장", address: c.roadAddr, ...(at ?? {}) }])} />
+        onPick={(c, at) => onChange([{ label: wp?.label ?? "직장", address: c.roadAddr, ...at }])} />
     </section>
   );
 }

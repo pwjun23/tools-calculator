@@ -8,12 +8,11 @@ const input = "rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-70
 const errText = "text-xs text-rose-600 dark:text-rose-400";
 
 /**
- * 도로명주소 API로 주소를 찾아 고른다(직장·학교·자주 가는 곳 공용).
- * 좌표 API를 못 쓰는 동안(임시 카카오 방식)에는 at 이 비어 있다.
+ * 도로명주소 API로 주소를 찾아 좌표와 함께 고른다(직장·학교·자주 가는 곳 공용).
  */
 export default function AddressSearch({ placeholder, onPick }: {
   placeholder: string;
-  onPick: (c: JusoCandidate, at: { lat: number; lng: number } | null) => void;
+  onPick: (c: JusoCandidate, at: { lat: number; lng: number }) => void;
 }) {
   const [kw, setKw] = useState("");
   const [list, setList] = useState<JusoCandidate[]>([]);
@@ -28,7 +27,7 @@ export default function AddressSearch({ placeholder, onPick }: {
   const pick = (c: JusoCandidate) => start(async () => {
     const r = await locateCandidateAction(c);
     if (!r.ok) { setMsg(r.error); return; }
-    onPick(c, r.lat !== undefined && r.lng !== undefined ? { lat: r.lat, lng: r.lng } : null);
+    onPick(c, { lat: r.lat, lng: r.lng });
     setList([]); setKw(""); setMsg("");
   });
 

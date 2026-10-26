@@ -4,7 +4,6 @@ import { busIndex } from "@/lib/whereToMove/bus";
 import { complexBoard } from "@/lib/whereToMove/complex-board";
 import { complexKey } from "@/lib/whereToMove/complexes";
 import { requireUser } from "@/lib/whereToMove/current-user";
-import { fillLiveSites, kakaoAddress, kakaoComplex, kakaoLiveKey } from "@/lib/whereToMove/kakao-live";
 import { periodStart } from "@/lib/whereToMove/board";
 import { deriveParams, evaluateDeal, filterDeals } from "@/lib/whereToMove/judge";
 import { MARKET, belowMarket, marketIndex } from "@/lib/whereToMove/market";
@@ -47,32 +46,23 @@ export default async function Page() {
   const busAt = busIndex(settings.busRoutes);
   const built = complexBoard(stored, settings, p, marketFrom);
   const board = { ...built, rows: built.rows.map((r) => (busAt(r).length ? { ...r, bus: busAt(r) } : r)) };
-  // 임시(WTM_KAKAO_LIVE): 좌표가 없는 직장·학교·자주 가는 곳·단지는 카카오로 그때그때 구한다. 결과는 저장하지 않는다.
-  const live = kakaoLiveKey();
-  const locate = async (a: { address: string; lat?: number; lng?: number }): Promise<LatLng | null> => {
-    if (a.lat !== undefined && a.lng !== undefined) return { lat: a.lat, lng: a.lng };
-    if (!live) return null;
-    return kakaoAddress(a.address, live).catch((e) => { console.error("[whereToMove kakao live]", e instanceof Error ? e.message : e); return null; });
-  };
+  const locate = (a: { lat?: number; lng?: number }): LatLng | null =>
+    a.lat !== undefined && a.lng !== undefined ? { lat: a.lat, lng: a.lng } : null;
   const wp = settings.workplaces[0];
   const wanted: (Omit<Place, "lat" | "lng"> & { src: { address: string; lat?: number; lng?: number } })[] = [
     ...(wp ? [{ id: "w", kind: "work" as const, label: wp.label, modes: ["transit" as const, "car" as const], src: wp }] : []),
     ...settings.schools.map((sc, i) => ({ id: `s${i}`, kind: "school" as const, label: sc.label, modes: sc.modes, src: sc })),
     ...settings.places.map((pl, i) => ({ id: `p${i}`, kind: "place" as const, label: pl.label, modes: [...pl.modes], src: pl })),
   ];
-  // 좌표를 못 구한 장소는 뺀다(나머지 장소는 그대로 보인다).
-  const located = await Promise.all(wanted.map(async ({ src, ...p }): Promise<Place | null> => {
-    const at = await locate(src);
+  // 좌표가 없는 장소는 뺀다(나머지 장소는 그대로 보인다). 설정에서 주소를 다시 고르면 좌표가 저장된다.
+  const located = wanted.map(({ src, ...p }): Place | null => {
+    const at = locate(src);
     return at ? { ...p, ...at } : null;
-  }));
+  });
   const places = located.filter((p): p is Place => p !== null);
   const sites = places.length ? await listComplexes(settings.regions.map((r) => r.sggCd)) : new Map<string, Site>();
   // 임대주택은 거래 대부분이 갱신 계약이라 갱신 제외 설정이어도 목록에 남긴다(화면에서 숨길 수 있음).
   const shown = filterDeals(settings, stored, { keepRenewal: (d) => isRentalComplex(d.apt) });
-  if (places.length && live) {
-    const label = (sggCd: string) => settings.regions.find((r) => r.sggCd === sggCd)?.label ?? "";
-    await fillLiveSites(sites, shown.map((d) => ({ key: complexKey(d), q: { label: label(d.sggCd), dong: d.dong, apt: d.apt } })), (n) => kakaoComplex(n.q, live));
-  }
 
   const deals: Deal[] = shown.map((d) => {
     const market = marketAt(d);

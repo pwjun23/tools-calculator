@@ -6,7 +6,6 @@ import { collectRegion } from "@/lib/whereToMove/collect";
 import { requireUser } from "@/lib/whereToMove/current-user";
 import { geocodePending } from "@/lib/whereToMove/geocode";
 import { cleanKeyword, coordOf, jusoKeys, jusoSearchKey, searchAddress, type JusoRef } from "@/lib/whereToMove/juso";
-import { kakaoLiveKey } from "@/lib/whereToMove/kakao-live";
 import { collectKeys } from "@/lib/whereToMove/molit";
 import { checkRegions } from "@/lib/whereToMove/region-check";
 import { collectDeps, geocodeDeps, getOrCreateSettings, loggedMonths, saveSettings } from "@/lib/whereToMove/repo";
@@ -69,11 +68,8 @@ export async function searchAddressAction(keyword: string) {
   }
 }
 
-/**
- * 고른 후보의 좌표(도로명주소 좌표 API).
- * 임시(WTM_KAKAO_LIVE): 좌표 API를 못 쓰면 좌표 없이 주소만 저장하게 하고, 목록에서 카카오로 그때그때 구한다.
- */
-export async function locateCandidateAction(ref: JusoRef): Promise<{ ok: true; lat?: number; lng?: number } | { ok: false; error: string }> {
+/** 고른 후보의 좌표(도로명주소 좌표 API). */
+export async function locateCandidateAction(ref: JusoRef): Promise<{ ok: true; lat: number; lng: number } | { ok: false; error: string }> {
   await requireUser();
   const jk = jusoKeys();
   let notFound = false;
@@ -86,6 +82,5 @@ export async function locateCandidateAction(ref: JusoRef): Promise<{ ok: true; l
       console.error("[whereToMove juso coord]", e instanceof Error ? e.message : e);
     }
   }
-  if (kakaoLiveKey()) return { ok: true };
   return { ok: false, error: notFound ? "이 주소의 위치를 찾지 못했습니다. 다른 후보를 골라 주세요." : NO_JUSO };
 }
